@@ -1,5 +1,3 @@
-package ru.alexkulikov
-
 import org.json.JSONObject
 
 class World(config: JSONObject) {

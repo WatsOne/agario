@@ -1,10 +1,8 @@
-package ru.alexkulikov
-
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 
 class Strategy {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {

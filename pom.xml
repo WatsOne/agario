@@ -91,7 +91,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>ru.alexkulikov.MainKt</mainClass>
+                                    <mainClass>MainKt</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

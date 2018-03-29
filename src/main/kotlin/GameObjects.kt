@@ -1,5 +1,3 @@
-package ru.alexkulikov
-
 import org.json.JSONObject
 import java.math.BigDecimal
 
