@@ -53,4 +53,10 @@ class Data() {
             }
         }
     }
+
+    override fun toString(): String {
+        return "Data(me=$me, food=$food, ejection=$ejection, virus=$virus, enemy=$enemy)"
+    }
+
+
 }
