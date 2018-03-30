@@ -3,17 +3,19 @@ import kotlin.math.*
 
 object Utils {
 
-    private fun rotate(x: Float, y: Float, length: Float, angle: Double): Pair<Float, Float> {
+    private fun rotate(x: Float, y: Float, length: Float, angle: Double, world: World): Pair<Float, Float> {
         val tX = 0
         val cosA = cos(Math.toRadians(angle))
         val sinA = sin(Math.toRadians(angle))
-        return Pair((tX*cosA + length*sinA + x).toFloat(), (-tX*sinA + length*cosA + y).toFloat())
+        val rotateX = (tX*cosA + length*sinA + x).toFloat()
+        val rotateY = (-tX*sinA + length*cosA + y).toFloat()
+        return Pair(max(0f, min(world.width.toFloat(), rotateX)), max(0f, min(world.height.toFloat(), rotateY)))
     }
 
     fun rotatingPoints(x: Float, y:Float, r: Float, world: World): List<Pair<Float, Float>> {
         val points = mutableListOf<Pair<Float, Float>>()
         (1..360).forEach {
-            points.add(Utils.rotate(max(0f, min(world.width.toFloat(), x)), max(0f, min(world.height.toFloat(), y)), 4*r + 10, it.toDouble()))
+            points.add(Utils.rotate(x, y, 4*r + 10, it.toDouble(), world))
         }
         return points
     }
@@ -93,20 +95,5 @@ object Utils {
         }
 
         player.speed = min(maxSpeed, sqrt(player.sx*player.sx + player.sy*player.sy))
-
-        if (dist < STOP_LIMIT) {
-            player.speed = 0f
-            val rb = player.x + player.r
-            val lb = player.x - player.r
-            val db = player.y + player.r
-            val ub = player.y - player.r
-
-            if (rb < world.width && lb > 0) {
-                player.x = x
-            }
-            if (db < world.height && ub > 0) {
-                player.y = y
-            }
-        }
     }
 }

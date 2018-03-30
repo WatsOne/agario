@@ -1,7 +1,5 @@
 import mu.KLogging
 import org.json.JSONObject
-import kotlin.math.hypot
-import kotlin.math.min
 import kotlin.math.sqrt
 
 class Strategy {
@@ -35,7 +33,7 @@ class Strategy {
                     logger.trace { "$tick EMPTY GO: $emptyPoint" }
                     println(JSONObject(mapOf("X" to emptyPoint.first, "Y" to emptyPoint.second)))
 
-                    if (Utils.dist(data.me[0].x, data.me[0].y, emptyPoint.first, emptyPoint.second) < data.me[0].r / 2) {
+                    if (Utils.dist(data.me[0].x, data.me[0].y, emptyPoint.first, emptyPoint.second) < (data.me[0].r / 2 + 3)) {
                         emptyPoint = null
                     }
                 }
