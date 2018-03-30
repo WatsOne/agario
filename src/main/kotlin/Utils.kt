@@ -14,8 +14,8 @@ object Utils {
 
     fun rotatingPoints(x: Float, y:Float, r: Float, world: World): List<Pair<Float, Float>> {
         val points = mutableListOf<Pair<Float, Float>>()
-        (1..360).forEach {
-            points.add(Utils.rotate(x, y, 4*r + 10, it.toDouble(), world))
+        (1..180).forEach {
+            points.add(Utils.rotate(x, y, 4*r + 10, it.toDouble() * 2, world))
         }
         return points
     }
