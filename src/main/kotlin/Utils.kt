@@ -1,21 +1,25 @@
-import mu.KLogger
 import kotlin.math.*
 
 object Utils {
 
-    private fun rotate(x: Float, y: Float, length: Float, angle: Double, world: World): Pair<Float, Float> {
+    private fun rotate(x: Float, y: Float, r: Float, angle: Float, world: World): Pair<Float, Float> {
+        val length = 4*r + 10
         val tX = 0
-        val cosA = cos(Math.toRadians(angle))
-        val sinA = sin(Math.toRadians(angle))
-        val rotateX = (tX*cosA + length*sinA + x).toFloat()
-        val rotateY = (-tX*sinA + length*cosA + y).toFloat()
-        return Pair(max(0f, min(world.width.toFloat(), rotateX)), max(0f, min(world.height.toFloat(), rotateY)))
+        val cosA = cos(angle)
+        val sinA = sin(angle)
+        val rotateX = (tX*cosA + length*sinA + x)
+        val rotateY = (-tX*sinA + length*cosA + y)
+        return Pair(max(r, min(world.width.toFloat() - r, rotateX)), max(r, min(world.height.toFloat() - r, rotateY)))
     }
 
-    fun rotatingPoints(x: Float, y:Float, r: Float, world: World): List<Pair<Float, Float>> {
+    fun rotatingPoints(player: Me, world: World): List<Pair<Float, Float>> {
+        val rotateCount = 180 * (15 / player.r)
+        val step = 2*PI.toFloat() / rotateCount
+        val startAngle = getAngle(player.sx, player.sy)
         val points = mutableListOf<Pair<Float, Float>>()
-        (1..180).forEach {
-            points.add(Utils.rotate(x, y, 4*r + 10, it.toDouble() * 2, world))
+
+        (1..rotateCount.toInt()).forEach {
+            points.add(Utils.rotate(player.x, player.y, player.r, startAngle + (step*it), world))
         }
         return points
     }
@@ -84,16 +88,19 @@ object Utils {
         player.sx += (nx*maxSpeed - speedX) * world.inertion / player.m
         player.sy += (ny*maxSpeed - speedY) * world.inertion / player.m
 
-        if (player.sy != 0f && player.sx != 0f) {
-            if (player.sx > 0) {
-                player.angle = atan(player.sy / abs(player.sx))
+        player.angle = getAngle(player.sx, player.sy)
+        player.speed = min(maxSpeed, sqrt(player.sx*player.sx + player.sy*player.sy))
+    }
+
+    fun getAngle(sx: Float, sy: Float): Float {
+        return if (sy != 0f && sx != 0f) {
+            if (sx > 0) {
+                atan(sy / abs(sx))
             } else {
-                player.angle = (PI - atan(player.sy / abs(player.sx))).toFloat()
+                (PI - atan(sy / abs(sx))).toFloat()
             }
         } else {
-            player.angle = if (player.sx >= 0) 0f else PI.toFloat()
+            if (sx >= 0) 0f else PI.toFloat()
         }
-
-        player.speed = min(maxSpeed, sqrt(player.sx*player.sx + player.sy*player.sy))
     }
 }

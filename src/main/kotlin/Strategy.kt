@@ -20,7 +20,7 @@ class Strategy {
 
                 if (data.food.isEmpty() && emptyPoint == null) {
                     logger.trace { "$tick EMPTY INITIAL" }
-                    emptyPoint = Utils.rotatingPoints(data.me[0].x, data.me[0].y, data.me[0].r, world).shuffled()[0]
+                    emptyPoint = Utils.rotatingPoints(data.me[0], world).shuffled()[0]
                 }
 
                 if (!data.food.isEmpty()) {
@@ -33,7 +33,10 @@ class Strategy {
                     logger.trace { "$tick EMPTY GO: $emptyPoint" }
                     println(JSONObject(mapOf("X" to emptyPoint.first, "Y" to emptyPoint.second)))
 
-                    if (Utils.dist(data.me[0].x, data.me[0].y, emptyPoint.first, emptyPoint.second) < (data.me[0].r + 1)) {
+                    val dist = Utils.dist(data.me[0].x, data.me[0].y, emptyPoint.first, emptyPoint.second)
+                    val rr = data.me[0].r * 1.6
+
+                    if (dist < rr) {
                         emptyPoint = null
                     }
                 }
@@ -49,14 +52,15 @@ class Strategy {
         val start = System.currentTimeMillis()
 
         val total = mutableMapOf<Pair<Float, Float>, Float>()
-        Utils.rotatingPoints(data.me[0].x, data.me[0].y, data.me[0].r, world).forEach { d ->
+        Utils.rotatingPoints(data.me[0], world).forEach { d ->
             val testPlayer = TestPlayer(data.me[0])
             val testFoods = data.food.map { TestFood(it) }
             var eat = 0
 
             var ppt = 0f
+            var tick = 0
 
-            (1..(4*data.me[0].r.toInt() + 10)).forEach {
+            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r) {
                 Utils.applyDirect(d.first, d.second, testPlayer, world)
                 testFoods.forEach { f ->
                     if (!f.eaten && Utils.canEat(testPlayer, f)) {
@@ -64,10 +68,11 @@ class Strategy {
                         f.eaten = true
                         testPlayer.m++
                         testPlayer.r = 2 * sqrt(testPlayer.m)
-                        ppt = eat / it.toFloat()
+                        ppt = eat / tick.toFloat()
                     }
                 }
                 Utils.move(testPlayer, world)
+                tick++
             }
             total[d] = ppt
         }
@@ -78,7 +83,7 @@ class Strategy {
         val yMax = maxTotal?.key?.second ?: 0f
 
 
-        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms." }
+        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms. Radius: ${data.me[0].r}" }
 
         return JSONObject(mapOf("X" to xMax, "Y" to yMax))
     }
