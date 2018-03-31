@@ -1,5 +1,6 @@
 import mu.KLogging
 import org.json.JSONObject
+import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
@@ -11,43 +12,46 @@ class Strategy {
         val world = World(config)
         val data = Data()
 
-        var emptyPoint: Pair<Float, Float>? = null
+        var idlePoint: Pair<Float, Float>? = null
 
         while (true) {
-            try {
-                val tickData = JSONObject(readLine())
-                data.parse(tickData)
+            val tickData = JSONObject(readLine())
+            data.parse(tickData)
 
-                if (data.food.isEmpty() && emptyPoint == null) {
-                    logger.trace { "$tick EMPTY INITIAL" }
-                    emptyPoint = Utils.rotatingPoints(data.me[0], world).shuffled()[0]
-                }
+            if (data.food.isEmpty()) {
+                idlePoint = getIdlePoint(data, world, idlePoint)
+                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+            } else {
+                idlePoint = null
+                println(doEat(data, world))
+            }
 
-                if (!data.food.isEmpty()) {
-                    logger.trace { "$tick CALCULATE" }
-                    emptyPoint = null
-                    println(onTick(data, world))
-                }
+            tick++
+        }
+    }
 
-                if (emptyPoint != null) {
-                    logger.trace { "$tick EMPTY GO: $emptyPoint" }
-                    println(JSONObject(mapOf("X" to emptyPoint.first, "Y" to emptyPoint.second)))
+    private fun getIdlePoint(data: Data, world: World, idlePoint: Pair<Float, Float>?): Pair<Float, Float> {
+        val player = data.me[0]
 
-                    val dist = Utils.dist(data.me[0].x, data.me[0].y, emptyPoint.first, emptyPoint.second)
-                    val rr = data.me[0].r * 1.6
-
-                    if (dist < rr) {
-                        emptyPoint = null
-                    }
-                }
-                tick++
-            } catch (ex: Exception) {
-                logger.trace { "$ex" }
+        return if (idlePoint == null) {
+            getNewIdleRotatePoint(player, world)
+        } else {
+            val dist = Utils.dist(data.me[0].x, data.me[0].y, idlePoint.first, idlePoint.second)
+            if (dist < player.r + 1) {
+                getNewIdleRotatePoint(player, world)
+            } else {
+                idlePoint
             }
         }
     }
 
-    fun onTick(data: Data, world: World): JSONObject {
+    private fun getNewIdleRotatePoint(player: Me, world: World): Pair<Float, Float> {
+        val currentAngle = Utils.getAngle(player.sx, player.sy)
+        val point = Utils.rotate(player.x, player.y, player.r, player.r + 30f, currentAngle + PI.toFloat() / 20, world)
+        return point
+    }
+
+    private fun doEat(data: Data, world: World): JSONObject {
 
         val start = System.currentTimeMillis()
 

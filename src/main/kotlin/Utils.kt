@@ -2,13 +2,12 @@ import kotlin.math.*
 
 object Utils {
 
-    private fun rotate(x: Float, y: Float, r: Float, angle: Float, world: World): Pair<Float, Float> {
-        val length = 4*r + 10
+    fun rotate(x: Float, y: Float, r: Float, length: Float, angle: Float, world: World): Pair<Float, Float> {
         val tX = 0
-        val cosA = cos(angle)
-        val sinA = sin(angle)
+        val cosA = cos(angle + PI.toFloat()/2)
+        val sinA = sin(angle + PI.toFloat()/2)
         val rotateX = (tX*cosA + length*sinA + x)
-        val rotateY = (-tX*sinA + length*cosA + y)
+        val rotateY = (-tX*sinA + y - length*cosA)
         return Pair(max(r, min(world.width.toFloat() - r, rotateX)), max(r, min(world.height.toFloat() - r, rotateY)))
     }
 
@@ -19,7 +18,7 @@ object Utils {
         val points = mutableListOf<Pair<Float, Float>>()
 
         (1..rotateCount.toInt()).forEach {
-            points.add(Utils.rotate(player.x, player.y, player.r, startAngle + (step*it), world))
+            points.add(Utils.rotate(player.x, player.y, player.r, 4*player.r + 10, startAngle + (step*it), world))
         }
         return points
     }
