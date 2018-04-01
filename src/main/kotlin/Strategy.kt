@@ -17,9 +17,7 @@ class Strategy {
         while (true) {
             val tickData = JSONObject(readLine())
 
-            val start = System.currentTimeMillis()
             data.parse(tickData, world)
-            logger.trace { "parse: ${System.currentTimeMillis() - start} ms." }
 
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
@@ -59,32 +57,32 @@ class Strategy {
         val total = mutableMapOf<Pair<Float, Float>, Float>()
         var oper = 0
 
-        data.me.forEach { me ->
-            Utils.rotatingPoints(me, world).forEach { d ->
-                val testPlayer = TestPlayer(me)
-                val testFoods = data.food.map { TestFood(it) }
-                var eat = 0
+        val me = data.me[0]
 
-                var ppt = 0f
-                var tick = 0
+        Utils.rotatingPoints(me, world).forEach { d ->
+            val testPlayer = TestPlayer(me)
+            val testFoods = data.food.map { TestFood(it) }
+            var eat = 0
 
-                while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r) {
-                    Utils.applyDirect(d.first, d.second, testPlayer, world)
-                    testFoods.forEach { f ->
-                        if (!f.eaten && Utils.canEat(testPlayer, f)) {
-                            eat++
-                            f.eaten = true
-                            testPlayer.m++
-                            testPlayer.r = 2 * sqrt(testPlayer.m)
-                            ppt = eat / tick.toFloat()
-                        }
+            var ppt = 0f
+            var tick = 0
+
+            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r) {
+                Utils.applyDirect(d.first, d.second, testPlayer, world)
+                testFoods.forEach { f ->
+                    if (!f.eaten && Utils.canEat(testPlayer, f)) {
+                        eat++
+                        f.eaten = true
+                        testPlayer.m++
+                        testPlayer.r = 2 * sqrt(testPlayer.m)
+                        ppt = eat / tick.toFloat()
                     }
-                    Utils.move(testPlayer, world)
-                    tick++
-                    oper++
                 }
-                total[d] = ppt
+                Utils.move(testPlayer, world)
+                tick++
+                oper++
             }
+            total[d] = ppt
         }
 
         val maxTotal = total.maxBy { it.value }

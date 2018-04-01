@@ -35,9 +35,23 @@ object Utils {
         return dx*dx + dy*dy
     }
 
+    fun canEat(player: Circle, food: Circle): Boolean {
+        return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
+    }
+
     fun canEat(player: TestPlayer, food: TestFood): Boolean {
-        val tr = FOOD_RADIUS * RAD_EAT_FACTOR
-        return qDist(player.x, player.y, food.x, food.y) < tr * tr
+        return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
+    }
+
+    private fun canEat(playerX: Float, playerY: Float, playerR: Float, playerM: Float, foodX: Float, foodY: Float, foodR: Float, foodM: Float): Boolean {
+        if (playerM > foodM * MASS_EAT_FACTOR) {
+            val dist = dist(playerX, playerY, foodX, foodY)
+            if (dist - foodR + (foodR * 2) * DIAM_EAT_FACTOR < playerR) {
+                return true
+            }
+        }
+
+        return false
     }
 
     fun move(player: TestPlayer, world: World) {

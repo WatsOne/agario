@@ -37,7 +37,7 @@ class Data {
         for (i in 0 until objectArray.length()) {
             val obj = objectArray.getJSONObject(i)
             when (obj.getString("T")) {
-                "F" -> food.add(Food(obj.getFloat("X"), obj.getFloat("Y")))
+                "F" -> food.add(Food(obj.getFloat("X"), obj.getFloat("Y"), world.foodMass))
                 "E" -> ejection.add(Ejection(obj.getFloat("X"), obj.getFloat("Y")))
                 "V" -> virus.add(Virus(
                         id = obj.getString("Id"),
