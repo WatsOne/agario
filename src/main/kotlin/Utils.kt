@@ -92,14 +92,6 @@ object Utils {
     }
 
     fun getAngle(sx: Float, sy: Float): Float {
-        return if (sy != 0f && sx != 0f) {
-            if (sx > 0) {
-                atan(sy / abs(sx))
-            } else {
-                (PI - atan(sy / abs(sx))).toFloat()
-            }
-        } else {
-            if (sx >= 0) 0f else PI.toFloat()
-        }
+        return atan2(sy, sx)
     }
 }

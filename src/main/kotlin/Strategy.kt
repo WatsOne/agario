@@ -16,7 +16,10 @@ class Strategy {
 
         while (true) {
             val tickData = JSONObject(readLine())
-            data.parse(tickData)
+
+            val start = System.currentTimeMillis()
+            data.parse(tickData, world)
+            logger.trace { "parse: ${System.currentTimeMillis() - start} ms." }
 
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
@@ -47,38 +50,41 @@ class Strategy {
 
     private fun getNewIdleRotatePoint(player: Me, world: World): Pair<Float, Float> {
         val currentAngle = Utils.getAngle(player.sx, player.sy)
-        val point = Utils.rotate(player.x, player.y, player.r, player.r + 30f, currentAngle + PI.toFloat() / 20, world)
-        return point
+        return Utils.rotate(player.x, player.y, player.r, player.r + 30f, currentAngle + PI.toFloat() / 20, world)
     }
 
     private fun doEat(data: Data, world: World): JSONObject {
 
         val start = System.currentTimeMillis()
-
         val total = mutableMapOf<Pair<Float, Float>, Float>()
-        Utils.rotatingPoints(data.me[0], world).forEach { d ->
-            val testPlayer = TestPlayer(data.me[0])
-            val testFoods = data.food.map { TestFood(it) }
-            var eat = 0
+        var oper = 0
 
-            var ppt = 0f
-            var tick = 0
+        data.me.forEach { me ->
+            Utils.rotatingPoints(me, world).forEach { d ->
+                val testPlayer = TestPlayer(me)
+                val testFoods = data.food.map { TestFood(it) }
+                var eat = 0
 
-            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r) {
-                Utils.applyDirect(d.first, d.second, testPlayer, world)
-                testFoods.forEach { f ->
-                    if (!f.eaten && Utils.canEat(testPlayer, f)) {
-                        eat++
-                        f.eaten = true
-                        testPlayer.m++
-                        testPlayer.r = 2 * sqrt(testPlayer.m)
-                        ppt = eat / tick.toFloat()
+                var ppt = 0f
+                var tick = 0
+
+                while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r) {
+                    Utils.applyDirect(d.first, d.second, testPlayer, world)
+                    testFoods.forEach { f ->
+                        if (!f.eaten && Utils.canEat(testPlayer, f)) {
+                            eat++
+                            f.eaten = true
+                            testPlayer.m++
+                            testPlayer.r = 2 * sqrt(testPlayer.m)
+                            ppt = eat / tick.toFloat()
+                        }
                     }
+                    Utils.move(testPlayer, world)
+                    tick++
+                    oper++
                 }
-                Utils.move(testPlayer, world)
-                tick++
+                total[d] = ppt
             }
-            total[d] = ppt
         }
 
         val maxTotal = total.maxBy { it.value }
@@ -87,7 +93,7 @@ class Strategy {
         val yMax = maxTotal?.key?.second ?: 0f
 
 
-        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms. Radius: ${data.me[0].r}" }
+        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
         return JSONObject(mapOf("X" to xMax, "Y" to yMax))
     }

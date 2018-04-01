@@ -1,6 +1,6 @@
 import org.json.JSONObject
 
-class Data() {
+class Data {
     val me = mutableListOf<Me>()
     val food = mutableListOf<Food>()
     val ejection = mutableListOf<Ejection>()
@@ -15,7 +15,7 @@ class Data() {
         enemy.clear()
     }
 
-    fun parse(data: JSONObject) {
+    fun parse(data: JSONObject, world: World) {
 
         clear()
 
@@ -43,7 +43,8 @@ class Data() {
                         id = obj.getString("Id"),
                         x = obj.getFloat("X"),
                         y = obj.getFloat("Y"),
-                        m = obj.getFloat("M")))
+                        m = obj.getFloat("M"),
+                        r = world.virusRadius))
                 "P" -> enemy.add(Enemy(
                         id = obj.getString("Id"),
                         x = obj.getFloat("X"),
