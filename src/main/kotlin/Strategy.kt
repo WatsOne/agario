@@ -84,7 +84,7 @@ class Strategy {
             val playerTest = TestPlayer(player)
             val enemyTest = TestPlayer(enemy, enemySx, enemySy)
             var penaltyPoints = 0
-            for (i in 1..30) {
+            repeat(60, {
                 Utils.applyDirect(d.first, d.second, playerTest, world)
                 Utils.applyDirect(playerTest.x, playerTest.y, enemyTest, world)
                 Utils.move(playerTest, world)
@@ -92,15 +92,12 @@ class Strategy {
                 if (Utils.canEat(enemyTest, playerTest)) {
                     penaltyPoints -= 100
                 }
-            }
+            })
             distance[d] = Utils.dist(playerTest, enemyTest) + penaltyPoints
         }
 
-        val minDist = distance.maxBy { it.value }
-        val xMax = minDist?.key?.first ?: 0f
-        val yMax = minDist?.key?.second ?: 0f
-
-        return JSONObject(mapOf("X" to xMax, "Y" to yMax))
+        val maxDistance = getMaxScore(distance)
+        return JSONObject(mapOf("X" to maxDistance.first, "Y" to maxDistance.second))
     }
 
     private fun doEat(data: Data, world: World): JSONObject {
@@ -137,13 +134,12 @@ class Strategy {
             total[d] = ppt
         }
 
-        val maxTotal = total.maxBy { it.value }
-
-        val xMax = maxTotal?.key?.first ?: 0f
-        val yMax = maxTotal?.key?.second ?: 0f
-
 //        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
-        return JSONObject(mapOf("X" to xMax, "Y" to yMax))
+        val max = getMaxScore(total)
+        return JSONObject(mapOf("X" to max.first, "Y" to max.second))
     }
+
+    private fun getMaxScore(scoreMap: Map<Pair<Float, Float>, Float>): Pair<Float, Float> =
+            scoreMap.maxBy { it.value }?.key ?: Pair(0f, 0f)
 }

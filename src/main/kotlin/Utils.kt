@@ -101,6 +101,7 @@ object Utils {
         if (rb + dx < world.width && lb + dx > 0) {
             player.x += dx
         } else {
+            player.x = max(0f, min(world.width.toFloat(), player.x + dx))
             player.speed = abs(dy)
             player.angle = if (dy >= 0) (PI.toFloat() / 2.0f) else (-PI.toFloat() / 2.0f)
         }
@@ -108,6 +109,7 @@ object Utils {
         if (db + dy < world.height && ub + dy > 0) {
             player.y += dy
         } else {
+            player.y = max(0f, min(world.height.toFloat(), player.y + dy))
             player.speed = abs(dx)
             player.angle = if (dx >= 0) 0f else PI.toFloat()
         }
