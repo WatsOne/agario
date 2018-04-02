@@ -23,6 +23,14 @@ object Utils {
         return points
     }
 
+    fun dist(player: TestPlayer, target: TestPlayer): Float {
+        return dist(player.x, player.y, target.x, target.y)
+    }
+
+    fun dist(player: Circle, target: Circle): Float {
+        return dist(player.x, player.y, target.x, target.y)
+    }
+
     fun dist(xFrom: Float, yFrom: Float, xTarget: Float, yTarget: Float): Float {
         val dx = xTarget - xFrom
         val dy = yTarget - yFrom
@@ -35,11 +43,38 @@ object Utils {
         return dx*dx + dy*dy
     }
 
+    fun getNearestMeEnemyPair(players: List<Me>, targets: List<Enemy>): Pair<Me, Enemy> {
+        var minDist = 10000f
+        var nearPlayer = players[0]
+        var nearTarget = targets[0]
+
+        players.forEach { p ->
+            targets.forEach {
+                val dist = dist(p, it)
+                if (dist < minDist) {
+                    nearPlayer = p
+                    nearTarget = it
+                    minDist = dist
+                }
+            }
+        }
+
+        return Pair(nearPlayer, nearTarget)
+    }
+
+    fun canEatPotential(player: Circle, food: Circle): Boolean {
+        return player.m > food.m * MASS_EAT_FACTOR
+    }
+
     fun canEat(player: Circle, food: Circle): Boolean {
         return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
     }
 
     fun canEat(player: TestPlayer, food: TestFood): Boolean {
+        return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
+    }
+
+    fun canEat(player: TestPlayer, food: TestPlayer): Boolean {
         return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
     }
 
