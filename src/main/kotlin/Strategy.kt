@@ -119,7 +119,7 @@ class Strategy {
             var ppt = 0f
             var tick = 0
 
-            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r) {
+            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && tick <= 80) {
                 Utils.applyDirect(d.first, d.second, testPlayer, world)
                 testFoods.forEach { f ->
                     if (!f.eaten && Utils.canEat(testPlayer, f)) {
@@ -141,7 +141,6 @@ class Strategy {
 
         val xMax = maxTotal?.key?.first ?: 0f
         val yMax = maxTotal?.key?.second ?: 0f
-
 
 //        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
