@@ -12,12 +12,15 @@ object Utils {
     }
 
     fun rotatingPoints(player: Me, world: World): List<Pair<Float, Float>> {
-        val rotateCount = 180 * (15 / player.r)
+        return rotatingPoints(player, world, (180 * (15 / player.r)).toInt())
+    }
+
+    fun rotatingPoints(player: Me, world: World, rotateCount: Int): List<Pair<Float, Float>> {
         val step = 2*PI.toFloat() / rotateCount
         val startAngle = getAngle(player.sx, player.sy)
         val points = mutableListOf<Pair<Float, Float>>()
 
-        (1..rotateCount.toInt()).forEach {
+        (1..rotateCount).forEach {
             points.add(Utils.rotate(player.x, player.y, player.r, 4*player.r + 10, startAngle + (step*it), world))
         }
         return points
@@ -144,5 +147,43 @@ object Utils {
 
     fun getAngle(sx: Float, sy: Float): Float {
         return atan2(sy, sx)
+    }
+
+    fun calculateCollision(player: TestPlayer, fragment: TestPlayer) {
+        val dist = dist(player, fragment)
+        if (dist >= player.r + fragment.r) {
+            return
+        }
+
+        var collisionVectorX = player.x - fragment.x
+        var collisionVectorY = player.y - fragment.y
+
+        val vectorLen = sqrt(collisionVectorX * collisionVectorX + collisionVectorY * collisionVectorY)
+        collisionVectorX /= vectorLen
+        collisionVectorY /= vectorLen
+
+        var collisionForce = 1.0f - dist / (player.r + fragment.r)
+        collisionForce *= collisionForce
+        collisionForce *= COLLISION_POWER
+
+        val sumMass = player.m + fragment.m
+
+        //for us
+        val currPart = fragment.m / sumMass
+        var dx = player.speed * cos(player.angle)
+        var dy = player.speed * sin(player.angle)
+        dx += collisionForce * currPart * collisionVectorX
+        dy += collisionForce * currPart * collisionVectorY
+        player.speed = sqrt(dx*dx + dy*dy)
+        player.angle = atan2(dy, dx)
+
+        //for fragment
+        val fragmentPart = player.m / sumMass
+        dx = fragment.speed * cos(fragment.angle)
+        dy = fragment.speed * sin(fragment.angle)
+        dx += collisionForce * fragmentPart * collisionVectorX
+        dy += collisionForce * fragmentPart * collisionVectorY
+        fragment.speed = sqrt(dx*dx + dy*dy)
+        fragment.angle = atan2(dy, dx)
     }
 }

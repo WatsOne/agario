@@ -1,10 +1,10 @@
-//import mu.KLogging
+import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-//    companion object: KLogging()
+    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -107,34 +107,54 @@ class Strategy {
         var oper = 0
 
         val me = data.me[0]
+        val testFoods = data.food.map { TestFood(it) }
 
-        Utils.rotatingPoints(me, world).forEach { d ->
-            val testPlayer = TestPlayer(me)
-            val testFoods = data.food.map { TestFood(it) }
+        val rotatingPoints =
+                if (data.me.size > 1)
+                    Utils.rotatingPoints(me, world, 100 / data.me.size)
+                else Utils.rotatingPoints(me, world)
+
+        rotatingPoints.forEach { d ->
+            val fragments = data.me.map { TestPlayer(it) }
+            val leadFragment = fragments[0]
+            testFoods.forEach { it.eaten = false }
+
+            var eaten = testFoods.size
             var eat = 0
 
             var ppt = 0f
             var tick = 0
 
-            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && tick <= 80) {
-                Utils.applyDirect(d.first, d.second, testPlayer, world)
-                testFoods.forEach { f ->
-                    if (!f.eaten && Utils.canEat(testPlayer, f)) {
-                        eat++
-                        f.eaten = true
-                        testPlayer.m += world.foodMass
-                        testPlayer.r = 2 * sqrt(testPlayer.m)
-                        ppt = eat / tick.toFloat()
+            while (Utils.dist(leadFragment.x, leadFragment.y, d.first, d.second) > leadFragment.r && eaten > 0 && tick <= 70) {
+
+                fragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
+                for (i in 0 until fragments.size ) {
+                    for (j in i + 1 until fragments.size) {
+                        Utils.calculateCollision(fragments[i], fragments[j])
                     }
                 }
-                Utils.move(testPlayer, world)
+                fragments.forEach { Utils.move(it, world) }
+
+                testFoods.forEach { f ->
+                    fragments.forEach {
+                        if (!f.eaten && Utils.canEat(it, f)) {
+                            eat++
+                            eaten--
+                            f.eaten = true
+                            it.m += world.foodMass
+                            it.r = 2 * sqrt(it.m)
+                            ppt = eat / tick.toFloat()
+                        }
+                    }
+                }
+
                 tick++
                 oper++
             }
             total[d] = ppt
         }
 
-//        logger.trace { "$tick MAX: $maxTotal calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
+        logger.trace { "$tick calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
         val max = getMaxScore(total)
         return JSONObject(mapOf("X" to max.first, "Y" to max.second))
