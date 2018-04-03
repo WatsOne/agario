@@ -13,7 +13,8 @@ class Strategy {
         val data = Data()
 
         var idlePoint: Pair<Float, Float>? = null
-        val prevEnemyPositions = mutableMapOf<String, Pair<Float, Float>>()
+        val prevEnemyPositions = mutableMapOf<String, Pair<Float, Float>?>()
+        val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
 
         while (true) {
             val tickData = JSONObject(readLine())
@@ -21,25 +22,35 @@ class Strategy {
 
             if (data.me.isEmpty()) return
 
+            //очищаем вектора скоростей у противков пропавших из виду
+            enemySpeedVectors.filter { !data.enemy.map { e -> e.id }.contains(it.key) }.forEach { enemySpeedVectors[it.key] = null }
+            prevEnemyPositions.filter { !data.enemy.map { e -> e.id }.contains(it.key) }.forEach { prevEnemyPositions[it.key] = null }
+
             if (!data.enemy.isEmpty()) {
+
+                //обновляем вектора скоростей врагов
+                data.enemy.forEach {
+                    val prevEnemyPos = prevEnemyPositions[it.id]
+                    if (prevEnemyPos == null) {
+                        prevEnemyPositions[it.id] = Pair(it.x, it.y)
+                    } else {
+                        enemySpeedVectors[it.id] = Pair(it.x - prevEnemyPos.first, it.y - prevEnemyPos.second)
+                        prevEnemyPositions[it.id] = Pair(it.x, it.y)
+                    }
+                }
+
                 val nearestPair = Utils.getNearestMeEnemyPair(data.me, data.enemy)
 
                 val enemy = nearestPair.second
                 val player = nearestPair.first
 
-                val prevEnemyPos = prevEnemyPositions[enemy.id]
-
-                if (prevEnemyPos == null) {
-                    prevEnemyPositions[enemy.id] = Pair(enemy.x, enemy.y)
-                } else {
-                    val enemySx = enemy.x - prevEnemyPos.first
-                    val enemySy = enemy.y - prevEnemyPos.second
-
-                    prevEnemyPositions[enemy.id] = Pair(enemy.x, enemy.y)
+                val nearestEnemySpeedVector = enemySpeedVectors[enemy.id]
+                logger.trace { "ENEMY VECTOR: $nearestEnemySpeedVector" }
+                if (nearestEnemySpeedVector != null) {
 
                     if (Utils.canEatPotential(enemy, player)) {
 //                        logger.trace { "$tick: RUN!" }
-                        println(doRun(player, enemy, enemySx, enemySy, world))
+                        println(doRun(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world))
                         continue
                     }
                 }
@@ -97,6 +108,9 @@ class Strategy {
         }
 
         val maxDistance = getMaxScore(distance)
+        if (maxDistance.first <= 0) {
+            logger.trace { "ALERT ALERT ALERT" }
+        }
         return JSONObject(mapOf("X" to maxDistance.first, "Y" to maxDistance.second))
     }
 
@@ -109,14 +123,8 @@ class Strategy {
         val me = data.me[0]
         val testFoods = data.food.map { TestFood(it) }
 
-        val rotatingPoints =
-                if (data.me.size > 1)
-                    Utils.rotatingPoints(me, world, 100 / data.me.size)
-                else Utils.rotatingPoints(me, world)
-
-        rotatingPoints.forEach { d ->
-            val fragments = data.me.map { TestPlayer(it) }
-            val leadFragment = fragments[0]
+        Utils.rotatingPoints(me, world).forEach { d ->
+            val testPlayer = TestPlayer(me)
             testFoods.forEach { it.eaten = false }
 
             var eaten = testFoods.size
@@ -125,26 +133,19 @@ class Strategy {
             var ppt = 0f
             var tick = 0
 
-            while (Utils.dist(leadFragment.x, leadFragment.y, d.first, d.second) > leadFragment.r && eaten > 0 && tick <= 70) {
+            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && eaten > 0 && tick <= 70) {
 
-                fragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
-                for (i in 0 until fragments.size ) {
-                    for (j in i + 1 until fragments.size) {
-                        Utils.calculateCollision(fragments[i], fragments[j])
-                    }
-                }
-                fragments.forEach { Utils.move(it, world) }
+                Utils.applyDirect(d.first, d.second, testPlayer, world)
+                Utils.move(testPlayer, world)
 
                 testFoods.forEach { f ->
-                    fragments.forEach {
-                        if (!f.eaten && Utils.canEat(it, f)) {
-                            eat++
-                            eaten--
-                            f.eaten = true
-                            it.m += world.foodMass
-                            it.r = 2 * sqrt(it.m)
-                            ppt = eat / tick.toFloat()
-                        }
+                    if (!f.eaten && Utils.canEat(testPlayer, f)) {
+                        eat++
+                        eaten--
+                        f.eaten = true
+                        testPlayer.m += world.foodMass
+                        testPlayer.r = 2 * sqrt(testPlayer.m)
+                        ppt = eat / tick.toFloat()
                     }
                 }
 
@@ -154,7 +155,7 @@ class Strategy {
             total[d] = ppt
         }
 
-        logger.trace { "$tick calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
+//        logger.trace { "$tick calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
         val max = getMaxScore(total)
         return JSONObject(mapOf("X" to max.first, "Y" to max.second))
