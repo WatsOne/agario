@@ -30,6 +30,10 @@ object Utils {
         return dist(player.x, player.y, target.x, target.y)
     }
 
+    fun dist(player: Circle, target: TestPlayer): Float {
+        return dist(player.x, player.y, target.x, target.y)
+    }
+
     fun dist(player: Circle, target: Circle): Float {
         return dist(player.x, player.y, target.x, target.y)
     }
@@ -74,6 +78,10 @@ object Utils {
     }
 
     fun canEat(player: TestPlayer, food: TestFood): Boolean {
+        return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
+    }
+
+    fun canEat(player: Circle, food: TestPlayer): Boolean {
         return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
     }
 

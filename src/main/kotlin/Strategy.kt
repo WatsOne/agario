@@ -45,12 +45,17 @@ class Strategy {
                 val player = nearestPair.first
 
                 val nearestEnemySpeedVector = enemySpeedVectors[enemy.id]
-                logger.trace { "ENEMY VECTOR: $nearestEnemySpeedVector" }
                 if (nearestEnemySpeedVector != null) {
 
                     if (Utils.canEatPotential(enemy, player)) {
 //                        logger.trace { "$tick: RUN!" }
-                        println(doRun(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world))
+                        val start = System.currentTimeMillis()
+                        val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
+                            TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
+                        }
+                        val res = doRun(player, enemies, world)
+                        logger.trace { "RUN: ${System.currentTimeMillis() - start} ms. Res: $res" }
+                        println(res)
                         continue
                     }
                 }
@@ -89,22 +94,28 @@ class Strategy {
         return Utils.rotate(player.x, player.y, player.r, player.r + 30f, currentAngle + PI.toFloat() / 20, world)
     }
 
-    private fun doRun(player: Me, enemy: Enemy, enemySx: Float, enemySy: Float, world: World): JSONObject {
+    private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
         val distance = mutableMapOf<Pair<Float, Float>, Float>()
+
         Utils.rotatingPoints(player, world).forEach { d ->
             val playerTest = TestPlayer(player)
-            val enemyTest = TestPlayer(enemy, enemySx, enemySy)
             var penaltyPoints = 0
-            repeat(60, {
+            val testEnemies = enemies.map { TestPlayer(it) }
+            repeat(40, {
                 Utils.applyDirect(d.first, d.second, playerTest, world)
-                Utils.applyDirect(playerTest.x, playerTest.y, enemyTest, world)
+                testEnemies.forEach { Utils.applyDirect(player.x, playerTest.y, it, world) }
                 Utils.move(playerTest, world)
-                Utils.move(enemyTest, world)
-                if (Utils.canEat(enemyTest, playerTest)) {
-                    penaltyPoints -= 100
+                testEnemies.forEach { Utils.move(it, world) }
+
+                testEnemies.forEach {
+                    if (Utils.canEat(it, playerTest)) {
+                        penaltyPoints -= 100
+                    }
                 }
             })
-            distance[d] = Utils.dist(playerTest, enemyTest) + penaltyPoints
+
+            val dist = testEnemies.map { Utils.dist(it, playerTest) }.min() ?: 0f
+            distance[d] = dist + penaltyPoints
         }
 
         val maxDistance = getMaxScore(distance)
