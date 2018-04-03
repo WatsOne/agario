@@ -1,10 +1,10 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -54,7 +54,7 @@ class Strategy {
                             TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
                         }
                         val res = doRun(player, enemies, world)
-                        logger.trace { "RUN: ${System.currentTimeMillis() - start} ms. Res: $res" }
+//                        logger.trace { "RUN: ${System.currentTimeMillis() - start} ms." }
                         println(res)
                         continue
                     }
@@ -111,6 +111,9 @@ class Strategy {
                     if (Utils.canEat(it, playerTest)) {
                         penaltyPoints -= 100
                     }
+
+                    //TODO рассеивающую функцию бы сюда
+                    penaltyPoints -= if (Utils.dist(it, playerTest) < playerTest.r + it.r) 50 else 0
                 }
             })
 
@@ -118,11 +121,12 @@ class Strategy {
             distance[d] = dist + penaltyPoints
         }
 
-        val maxDistance = getMaxScore(distance)
-        if (maxDistance.first <= 0) {
-            logger.trace { "ALERT ALERT ALERT" }
+        val maxPoint = distance.maxBy { it.value }
+        if (maxPoint?.value ?: 0f < 0) {
+            return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second, "Split" to true))
         }
-        return JSONObject(mapOf("X" to maxDistance.first, "Y" to maxDistance.second))
+
+        return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second))
     }
 
     private fun doEat(data: Data, world: World): JSONObject {
