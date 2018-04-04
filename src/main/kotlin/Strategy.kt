@@ -1,10 +1,10 @@
-//import mu.KLogging
+import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-//    companion object: KLogging()
+    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -45,8 +45,16 @@ class Strategy {
                 val player = nearestPair.first
 
                 val nearestEnemySpeedVector = enemySpeedVectors[enemy.id]
-                if (nearestEnemySpeedVector != null) {
+                val canMeEatEnemy = Utils.canEatPotential(player, enemy)
 
+                if (nearestEnemySpeedVector == null) {
+                    if (canMeEatEnemy) {
+                        println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
+                        continue
+                    }
+                }
+                else {
+                    //убегаем
                     if (Utils.canEatPotential(enemy, player)) {
 //                        logger.trace { "$tick: RUN!" }
                         val start = System.currentTimeMillis()
@@ -57,6 +65,14 @@ class Strategy {
 //                        logger.trace { "RUN: ${System.currentTimeMillis() - start} ms." }
                         println(res)
                         continue
+                    }
+
+                    //охотимся
+                    if (canMeEatEnemy) {
+                        if (canMeOvertakeEnemy(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world)) {
+                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
+                            continue
+                        }
                     }
                 }
             }
@@ -72,6 +88,25 @@ class Strategy {
 //            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
             tick++
         }
+    }
+
+    private fun canMeOvertakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
+        val testPlayer = TestPlayer(player)
+        val testEnemy = TestPlayer(enemy, eSx, eSy)
+        val dist = Utils.dist(testPlayer, testEnemy)
+
+        for (i in 1..60) {
+            Utils.applyDirect(testEnemy.x, testEnemy.y, testPlayer, world)
+            Utils.applyDirect(testEnemy.x + testPlayer.sx * 2, testEnemy.y + testPlayer.sy * 2, testEnemy, world)
+            Utils.move(testPlayer, world)
+            Utils.move(testEnemy, world)
+            if (Utils.canEat(testPlayer, testEnemy)) {
+                return true
+            }
+        }
+
+        val predictDist = Utils.dist(testPlayer, testEnemy)
+        return predictDist < dist
     }
 
     private fun getIdlePoint(data: Data, world: World, idlePoint: Pair<Float, Float>?): Pair<Float, Float> {
