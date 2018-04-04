@@ -73,6 +73,10 @@ object Utils {
         return player.m > food.m * MASS_EAT_FACTOR
     }
 
+    fun canEatPotential(player: TestPlayer, food: Circle): Boolean {
+        return player.m > food.m * MASS_EAT_FACTOR
+    }
+
     fun canEat(player: Circle, food: Circle): Boolean {
         return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
     }
@@ -100,6 +104,30 @@ object Utils {
         return false
     }
 
+    fun canSplit(player: Me, fragmentCount: Int, world: World): Boolean {
+        if (fragmentCount + 1 <= world.maxFragment) {
+            if (player.m > MIN_SPLIT_MASS) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    fun split(me: Me): TestPlayer {
+        return TestPlayer(me.x, me.y, me.r, me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true)
+
+    }
+
+    private fun applyViscosity(player: TestPlayer, maxSpeed: Float, world: World) {
+        if (player.speed - world.viscosity > maxSpeed) {
+            player.speed -= world.viscosity
+        } else {
+            player.speed = maxSpeed
+            player.isFast = false
+        }
+    }
+
     fun move(player: TestPlayer, world: World) {
         val rb = player.x + player.r
         val lb = player.x - player.r
@@ -124,9 +152,16 @@ object Utils {
             player.speed = abs(dx)
             player.angle = if (dx >= 0) 0f else PI.toFloat()
         }
+
+        if (player.isFast) {
+            val maxSpeed = world.speed / sqrt(player.m)
+            applyViscosity(player, maxSpeed, world)
+        }
     }
 
     fun applyDirect(x: Float, y: Float, player: TestPlayer, world: World) {
+        if (player.isFast) return
+
         val maxSpeed = world.speed / sqrt(player.m)
         val dy = y - player.y
         val dx = x - player.x

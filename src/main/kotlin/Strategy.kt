@@ -1,10 +1,10 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -49,7 +49,11 @@ class Strategy {
 
                 if (nearestEnemySpeedVector == null) {
                     if (canMeEatEnemy) {
-                        println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
+                        if (canSplitStrike(player, enemy, 0f, 0f, data, world)) {
+                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y, "Split" to true)))
+                        } else {
+                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
+                        }
                         continue
                     }
                 }
@@ -69,6 +73,10 @@ class Strategy {
 
                     //охотимся
                     if (canMeEatEnemy) {
+                        if (canSplitStrike(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, data, world)) {
+                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y, "Split" to true)))
+                            continue
+                        }
                         if (canMeOvertakeEnemy(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world)) {
                             println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
                             continue
@@ -90,7 +98,22 @@ class Strategy {
         }
     }
 
+    private fun canSplitStrike(player: Me, enemy: Enemy, eSx: Float, eSy: Float, data: Data, world: World): Boolean {
+        if (Utils.canSplit(player, data.me.size, world)) {
+            val splitPlayer = Utils.split(player)
+            if (Utils.canEatPotential(splitPlayer, enemy)) {
+                return canMeOvertakeEnemy(splitPlayer, enemy, eSx, eSy, world)
+            }
+        }
+
+        return false
+    }
+
     private fun canMeOvertakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
+        return canMeOvertakeEnemy(TestPlayer(player), enemy, eSx, eSy, world)
+    }
+
+    private fun canMeOvertakeEnemy(player: TestPlayer, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
         val testPlayer = TestPlayer(player)
         val testEnemy = TestPlayer(enemy, eSx, eSy)
         val dist = Utils.dist(testPlayer, testEnemy)
