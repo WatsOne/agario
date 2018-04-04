@@ -75,12 +75,12 @@ class Strategy {
     }
 
     private fun getIdlePoint(data: Data, world: World, idlePoint: Pair<Float, Float>?): Pair<Float, Float> {
-        val player = data.me[0]
+        val player = getLeaderFragment(data.me)
 
         return if (idlePoint == null) {
             getNewIdleRotatePoint(player, world)
         } else {
-            val dist = Utils.dist(data.me[0].x, data.me[0].y, idlePoint.first, idlePoint.second)
+            val dist = Utils.dist(player.x, player.y, idlePoint.first, idlePoint.second)
             if (dist < player.r + 1) {
                 getNewIdleRotatePoint(player, world)
             } else {
@@ -135,7 +135,7 @@ class Strategy {
         val total = mutableMapOf<Pair<Float, Float>, Float>()
         var oper = 0
 
-        val me = data.me[0]
+        val me = getLeaderFragment(data.me)
         val testFoods = data.food.map { TestFood(it) }
 
         Utils.rotatingPoints(me, world).forEach { d ->
@@ -178,4 +178,8 @@ class Strategy {
 
     private fun getMaxScore(scoreMap: Map<Pair<Float, Float>, Float>): Pair<Float, Float> =
             scoreMap.maxBy { it.value }?.key ?: Pair(0f, 0f)
+
+    private fun getLeaderFragment(me: List<Me>): Me {
+        return me.minBy { it.id.toFloat() } ?: me[0]
+    }
 }
