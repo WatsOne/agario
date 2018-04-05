@@ -1,10 +1,10 @@
-//import mu.KLogging
+import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-//    companion object: KLogging()
+    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -77,10 +77,11 @@ class Strategy {
                             println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y, "Split" to true)))
                             continue
                         }
-                        if (canMeOvertakeEnemy(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world)) {
-                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
-                            continue
-                        }
+
+                        logger.trace { "HUNTING..." }
+                        val overtakePosition = overtakeEnemy(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world)
+                        println(overtakePosition)
+                        continue
                     }
                 }
             }
@@ -127,43 +128,55 @@ class Strategy {
         return predictDist < dist
     }
 
-    private fun canMeOvertakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
-        val testPlayer = TestPlayer(player)
-        val testEnemy = TestPlayer(enemy, eSx, eSy)
-        val dist = Utils.dist(testPlayer, testEnemy)
+    private fun overtakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): JSONObject {
+        val dist = mutableMapOf<Pair<Float, Float>, Float>()
 
-        for (i in 1..15) {
-            Utils.applyDirect(testEnemy.x, testEnemy.y, testPlayer, world)
-            Utils.applyDirect(testEnemy.x + testPlayer.sx * 2, testEnemy.y + testPlayer.sy * 2, testEnemy, world)
-            Utils.move(testPlayer, world)
-            Utils.move(testEnemy, world)
-            if (Utils.canEat(testPlayer, testEnemy)) {
-                return true
+        Utils.rotatingPoints(player, world).forEach { d ->
+            val testPlayer = TestPlayer(player)
+            val testEnemy = TestPlayer(enemy, eSx, eSy)
+
+            var canEat = false
+            for (i in 1..15) {
+                Utils.applyDirect(d.first, d.second, testPlayer, world)
+                Utils.applyDirect(testEnemy.x + testPlayer.sx * 2, testEnemy.y + testPlayer.sy * 2, testEnemy, world)
+                Utils.move(testPlayer, world)
+                Utils.move(testEnemy, world)
+
+                if (Utils.canEat(testPlayer, testEnemy)) {
+                    canEat = true
+                }
             }
+
+            dist[Pair(d.first, d.second)] = if (canEat) -100f else Utils.dist(testPlayer, testEnemy)
         }
 
-        val predictDist = Utils.dist(testPlayer, testEnemy)
-        return predictDist < dist
+        val minDist = dist.minBy { it.value }
+        return JSONObject(mapOf("X" to minDist?.key?.first, "Y" to minDist?.key?.second))
     }
 
     private fun getIdlePoint(data: Data, world: World, idlePoint: Pair<Float, Float>?): Pair<Float, Float> {
         val player = getLeaderFragment(data.me)
 
         return if (idlePoint == null) {
-            getNewIdleRotatePoint(player, world)
+            getNewIdleRotatePoint(player, world, PI.toFloat() / 20)
         } else {
             val dist = Utils.dist(player.x, player.y, idlePoint.first, idlePoint.second)
-            if (dist < player.r * 2 + 5) {
-                getNewIdleRotatePoint(player, world)
+            if (dist < player.r) {
+                val newIdle = getNewIdleRotatePoint(player, world, PI.toFloat() / 25)
+                if (idlePoint.first == newIdle.first && idlePoint.second == newIdle.second) {
+                    getNewIdleRotatePoint(player, world, PI.toFloat())
+                } else {
+                    newIdle
+                }
             } else {
                 idlePoint
             }
         }
     }
 
-    private fun getNewIdleRotatePoint(player: Me, world: World): Pair<Float, Float> {
+    private fun getNewIdleRotatePoint(player: Me, world: World, angle: Float): Pair<Float, Float> {
         val currentAngle = Utils.getAngle(player.sx, player.sy)
-        return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + PI.toFloat() / 25, world)
+        return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + angle, world)
     }
 
     private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
