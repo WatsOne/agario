@@ -102,23 +102,37 @@ class Strategy {
         if (Utils.canSplit(player, data.me.size, world)) {
             val splitPlayer = Utils.split(player)
             if (Utils.canEatPotential(splitPlayer, enemy)) {
-                return canMeOvertakeEnemy(splitPlayer, enemy, eSx, eSy, world)
+                return canSplitOvertakeEnemy(splitPlayer, enemy, eSx, eSy, world)
             }
         }
 
         return false
     }
 
-    private fun canMeOvertakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
-        return canMeOvertakeEnemy(TestPlayer(player), enemy, eSx, eSy, world)
+    private fun canSplitOvertakeEnemy(split: TestPlayer, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
+        val testEnemy = TestPlayer(enemy, eSx, eSy)
+        val dist = Utils.dist(split, testEnemy)
+        while (split.isFast) {
+            Utils.applyDirect(testEnemy.x, testEnemy.y, split, world)
+            Utils.applyDirect(testEnemy.x + eSx * 2, testEnemy.y + eSy * 2, testEnemy, world)
+            Utils.move(split, world)
+            Utils.move(testEnemy, world)
+
+            if (Utils.canEat(split, testEnemy)) {
+                return true
+            }
+        }
+
+        val predictDist = Utils.dist(split, testEnemy)
+        return predictDist < dist
     }
 
-    private fun canMeOvertakeEnemy(player: TestPlayer, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
+    private fun canMeOvertakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): Boolean {
         val testPlayer = TestPlayer(player)
         val testEnemy = TestPlayer(enemy, eSx, eSy)
         val dist = Utils.dist(testPlayer, testEnemy)
 
-        for (i in 1..60) {
+        for (i in 1..15) {
             Utils.applyDirect(testEnemy.x, testEnemy.y, testPlayer, world)
             Utils.applyDirect(testEnemy.x + testPlayer.sx * 2, testEnemy.y + testPlayer.sy * 2, testEnemy, world)
             Utils.move(testPlayer, world)
@@ -159,7 +173,7 @@ class Strategy {
             val playerTest = TestPlayer(player)
             var penaltyPoints = 0
             val testEnemies = enemies.map { TestPlayer(it) }
-            repeat(40, {
+            repeat(15, {
                 Utils.applyDirect(d.first, d.second, playerTest, world)
                 testEnemies.forEach { Utils.applyDirect(player.x, playerTest.y, it, world) }
                 Utils.move(playerTest, world)
@@ -206,7 +220,7 @@ class Strategy {
             var ppt = 0f
             var tick = 0
 
-            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && eaten > 0 && tick <= 70) {
+            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && eaten > 0 && tick <= 40) {
 
                 Utils.applyDirect(d.first, d.second, testPlayer, world)
                 Utils.move(testPlayer, world)
