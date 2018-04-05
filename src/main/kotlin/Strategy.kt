@@ -153,7 +153,7 @@ class Strategy {
             getNewIdleRotatePoint(player, world)
         } else {
             val dist = Utils.dist(player.x, player.y, idlePoint.first, idlePoint.second)
-            if (dist < player.r + 1) {
+            if (dist < player.r * 2) {
                 getNewIdleRotatePoint(player, world)
             } else {
                 idlePoint
