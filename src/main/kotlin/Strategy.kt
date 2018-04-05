@@ -153,7 +153,7 @@ class Strategy {
             getNewIdleRotatePoint(player, world)
         } else {
             val dist = Utils.dist(player.x, player.y, idlePoint.first, idlePoint.second)
-            if (dist < player.r * 2) {
+            if (dist < player.r * 2 + 5) {
                 getNewIdleRotatePoint(player, world)
             } else {
                 idlePoint
@@ -163,7 +163,7 @@ class Strategy {
 
     private fun getNewIdleRotatePoint(player: Me, world: World): Pair<Float, Float> {
         val currentAngle = Utils.getAngle(player.sx, player.sy)
-        return Utils.rotate(player.x, player.y, player.r, player.r + 30f, currentAngle + PI.toFloat() / 20, world)
+        return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + PI.toFloat() / 25, world)
     }
 
     private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
