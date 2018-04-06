@@ -209,7 +209,7 @@ class Strategy {
     private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
         val distance = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPoints(player, world).forEach { d ->
+        Utils.rotatingPoints(player, 100f, world).forEach { d ->
             val playerTest = TestPlayer(player)
             var penaltyPoints = 0
             val testEnemies = enemies.map { TestPlayer(it) }
