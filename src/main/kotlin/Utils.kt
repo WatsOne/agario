@@ -69,7 +69,7 @@ object Utils {
         if (minDist < 10000f) return Pair(nearPlayer, nearTarget)
 
         players.forEach { p ->
-            targets.filter { Utils.canEatPotential(p, it) }.forEach {
+            targets.filter { Utils.canEatPotentialForHunting(p, it) }.forEach {
                 val dist = dist(p, it)
                 if (dist < minDist) {
                     nearPlayer = p
