@@ -69,6 +69,14 @@ object Utils {
         return Pair(nearPlayer, nearTarget)
     }
 
+    fun canEatPotentialForHunting(player: Circle, food: Circle): Boolean {
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.15f)
+    }
+
+    fun canEatPotentialForHunting(player: TestPlayer, food: Circle): Boolean {
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.15f)
+    }
+
     fun canEatPotential(player: Circle, food: Circle): Boolean {
         return player.m > food.m * MASS_EAT_FACTOR
     }

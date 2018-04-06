@@ -45,7 +45,7 @@ class Strategy {
                 val player = nearestPair.first
 
                 val nearestEnemySpeedVector = enemySpeedVectors[enemy.id]
-                val canMeEatEnemy = Utils.canEatPotential(player, enemy)
+                val canMeEatEnemy = Utils.canEatPotentialForHunting(player, enemy)
 
                 if (nearestEnemySpeedVector == null) {
                     if (canMeEatEnemy) {
@@ -102,7 +102,7 @@ class Strategy {
     private fun canSplitStrike(player: Me, enemy: Enemy, eSx: Float, eSy: Float, data: Data, world: World): Boolean {
         if (Utils.canSplit(player, data.me.size, world)) {
             val splitPlayer = Utils.split(player)
-            if (Utils.canEatPotential(splitPlayer, enemy)) {
+            if (Utils.canEatPotentialForHunting(splitPlayer, enemy)) {
                 return canSplitOvertakeEnemy(splitPlayer, enemy, eSx, eSy, world)
             }
         }
