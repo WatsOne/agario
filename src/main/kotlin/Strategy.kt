@@ -39,46 +39,74 @@ class Strategy {
                     }
                 }
 
-                val nearestPair = Utils.getNearestMeEnemyPair(data.me, data.enemy)
+                //считаем дистанции до врагов, которые могут сожрать
+                val enemyDist = Utils.getDistToEnemies(data.me, data.enemy)
 
-                val enemy = nearestPair.second
-                val player = nearestPair.first
+                //моделирем 10 тиков движения по векторам скоростей
+                val testFragments = enemyDist.keys.map { getById(it, data.me) }.map { TestPlayer(it) }
+                val testEnemies = enemyDist.values.flatten()
+                        .map { getById(it.first, data.enemy) }
+                        .map { TestPlayer(it, enemySpeedVectors[it.id]?.first ?: 0f, enemySpeedVectors[it.id]?.second ?: 0f) }
 
-                val nearestEnemySpeedVector = enemySpeedVectors[enemy.id]
-                val canMeEatEnemy = Utils.canEatPotentialForHunting(player, enemy)
+                repeat(10, {
+                    testFragments.forEach {
+                        Utils.applyDirect(it.x + it.sx *2 , it.y + it.sy * 2, it, world)
+                        Utils.move(it, world)
+                    }
+                    testEnemies.forEach {
+                        Utils.applyDirect(it.x + it.sx *2 , it.y + it.sy * 2, it, world)
+                        Utils.move(it, world)
+                    }
+                })
+                val newDist = Utils.getDistToEnemiesTest(testFragments, testEnemies)
 
-                if (nearestEnemySpeedVector == null) {
-                    if (canMeEatEnemy) {
-                        if (canSplitStrike(player, enemy, 0f, 0f, data, world)) {
-                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y, "Split" to true)))
-                        } else {
-                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y)))
+                //считаем разницу дистанций и выбираем максимальную (при наличии)
+                var maxDeltaDist = 0f
+                var dangerPair: Pair<String, String>? = null
+
+                enemyDist.forEach { d ->
+                    d.value.forEach {
+                        val deltaDist = it.second - (newDist[d.key + it.first] ?: it.second)
+                        if (deltaDist > maxDeltaDist) {
+                            maxDeltaDist = deltaDist
+                            dangerPair = Pair(d.key, it.first)
                         }
-                        continue
                     }
                 }
-                else {
-                    //убегаем
-                    if (Utils.canEatPotential(enemy, player)) {
-//                        logger.trace { "$tick: RUN!" }
-                        val start = System.currentTimeMillis()
-                        val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
-                            TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
+
+                //если такая имеется то начинаем убегать
+                if (maxDeltaDist > 0) {
+                    val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
+                        TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
+                    }
+                    println(doRun(getById(dangerPair?.first ?: "", data.me), enemies, world))
+                    continue
+                }
+
+                //иначе ищем ближайшую еду
+                val nearestPair = Utils.getNearestMeFoodPair(data.me, data.enemy)
+                if (nearestPair != null) {
+                    val food = nearestPair.second
+                    val player = nearestPair.first
+
+                    val nearestFoodSpeedVector = enemySpeedVectors[food.id]
+
+                    if (nearestFoodSpeedVector == null) {
+                        if (canSplitStrike(player, food, 0f, 0f, data, world)) {
+                            println(JSONObject(mapOf("X" to food.x, "Y" to food.y, "Split" to true)))
+                        } else {
+                            println(JSONObject(mapOf("X" to food.x, "Y" to food.y)))
                         }
-                        val res = doRun(player, enemies, world)
-//                        logger.trace { "RUN: ${System.currentTimeMillis() - start} ms." }
-                        println(res)
                         continue
                     }
-
-                    //охотимся
-                    if (canMeEatEnemy) {
-                        if (canSplitStrike(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, data, world)) {
-                            println(JSONObject(mapOf("X" to enemy.x, "Y" to enemy.y, "Split" to true)))
+                    else {
+                        //охотимся
+                        if (canSplitStrike(player, food, nearestFoodSpeedVector.first, nearestFoodSpeedVector.second, data, world)) {
+                            println(JSONObject(mapOf("X" to food.x, "Y" to food.y, "Split" to true)))
                             continue
                         }
 
-                        val overtakePosition = overtakeEnemy(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world)
+                        val overtakePosition = overtakeEnemy(player, food, nearestFoodSpeedVector.first, nearestFoodSpeedVector.second, world)
                         println(overtakePosition)
                         continue
                     }
@@ -265,5 +293,13 @@ class Strategy {
 
     private fun getLeaderFragment(me: List<Me>): Me {
         return me.minBy { it.id.toFloat() } ?: me[0]
+    }
+
+    private fun getById(id: String, me: List<Me>): Me {
+        return me.find { it.id == id } ?: me[0]
+    }
+
+    private fun getById(id: String, enemies: List<Enemy>): Enemy {
+        return enemies.find { it.id == id } ?: enemies[0]
     }
 }

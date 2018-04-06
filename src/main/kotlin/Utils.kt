@@ -50,23 +50,35 @@ object Utils {
         return dx*dx + dy*dy
     }
 
-    fun getNearestMeEnemyPair(players: List<Me>, targets: List<Enemy>): Pair<Me, Enemy> {
-        var minDist = 10000f
-        var nearPlayer = players[0]
-        var nearTarget = targets[0]
+    fun getDistToEnemies(fragments: List<Me>, enemies: List<Enemy>): Map<String, List<Pair<String, Float>>> {
+        val result = mutableMapOf<String, MutableList<Pair<String, Float>>>()
+        fragments.forEach { result[it.id] = mutableListOf() }
 
-        players.forEach { p ->
-            targets.filter { Utils.canEatPotential(it, p) }.forEach {
-                val dist = dist(p, it)
-                if (dist < minDist) {
-                    nearPlayer = p
-                    nearTarget = it
-                    minDist = dist
-                }
+        fragments.forEach { f ->
+            enemies.filter { canEatPotential(it, f) }.forEach {
+                result[f.id]!!.add(Pair(it.id, dist(f, it)))
             }
         }
 
-        if (minDist < 10000f) return Pair(nearPlayer, nearTarget)
+        return result
+    }
+
+    fun getDistToEnemiesTest(fragments: List<TestPlayer>, enemies: List<TestPlayer>): Map<String, Float> {
+        val result = mutableMapOf<String, Float>()
+
+        fragments.forEach { f ->
+            enemies.forEach {
+                result[f.id + it.id] = dist(f, it)
+            }
+        }
+
+        return result
+    }
+
+    fun getNearestMeFoodPair(players: List<Me>, targets: List<Enemy>): Pair<Me, Enemy>? {
+        var minDist = 10000f
+        var nearPlayer = players[0]
+        var nearTarget = targets[0]
 
         players.forEach { p ->
             targets.filter { Utils.canEatPotentialForHunting(p, it) }.forEach {
@@ -79,15 +91,15 @@ object Utils {
             }
         }
 
-        return Pair(nearPlayer, nearTarget)
+        return if (minDist < 10000f) Pair(nearPlayer, nearTarget) else null
     }
 
     fun canEatPotentialForHunting(player: Circle, food: Circle): Boolean {
-        return player.m > food.m * (MASS_EAT_FACTOR + 0.15f)
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.20f)
     }
 
     fun canEatPotentialForHunting(player: TestPlayer, food: Circle): Boolean {
-        return player.m > food.m * (MASS_EAT_FACTOR + 0.15f)
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.20f)
     }
 
     fun canEatPotential(player: Circle, food: Circle): Boolean {
@@ -136,7 +148,7 @@ object Utils {
     }
 
     fun split(me: Me): TestPlayer {
-        return TestPlayer(me.x, me.y, me.r, me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true)
+        return TestPlayer(null, me.x, me.y, me.r, me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true)
 
     }
 
