@@ -1,10 +1,10 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -78,7 +78,6 @@ class Strategy {
                             continue
                         }
 
-                        logger.trace { "HUNTING..." }
                         val overtakePosition = overtakeEnemy(player, enemy, nearestEnemySpeedVector.first, nearestEnemySpeedVector.second, world)
                         println(overtakePosition)
                         continue
