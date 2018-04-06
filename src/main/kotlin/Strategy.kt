@@ -79,7 +79,7 @@ class Strategy {
                     val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
                         TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
                     }
-                    println(doRun(getById(dangerPair?.first ?: "", data.me), enemies, world, data))
+                    println(doRun(getById(dangerPair?.first ?: "", data.me), enemies, world))
                     continue
                 }
 
@@ -206,7 +206,7 @@ class Strategy {
         return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + angle, world)
     }
 
-    private fun doRun(player: Me, enemies: List<TestPlayer>, world: World, data: Data): JSONObject {
+    private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
         val distance = mutableMapOf<Pair<Float, Float>, Float>()
 
         Utils.rotatingPoints(player, 100f, world).forEach { d ->
@@ -234,7 +234,7 @@ class Strategy {
         }
 
         val maxPoint = distance.maxBy { it.value }
-        if (maxPoint?.value ?: 0f < 0 && data.me.size == 1) {
+        if (maxPoint?.value ?: 0f < 0) {
             return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second, "Split" to true))
         }
 

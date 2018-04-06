@@ -152,7 +152,7 @@ object Utils {
     }
 
     fun split(me: Me): TestPlayer {
-        return TestPlayer(null, me.x, me.y, me.r, me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true)
+        return TestPlayer(null, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true)
 
     }
 
