@@ -48,6 +48,7 @@ class Strategy {
                         .map { getById(it.first, data.enemy) }
                         .map { TestPlayer(it, enemySpeedVectors[it.id]?.first ?: 0f, enemySpeedVectors[it.id]?.second ?: 0f) }
 
+                val nearPairs = mutableListOf<String>()
                 repeat(10, {
                     testFragments.forEach {
                         Utils.applyDirect(it.x + it.sx *2 , it.y + it.sy * 2, it, world)
@@ -57,8 +58,18 @@ class Strategy {
                         Utils.applyDirect(it.x + it.sx *2 , it.y + it.sy * 2, it, world)
                         Utils.move(it, world)
                     }
+
+                    testFragments.forEach { f ->
+                        testEnemies.forEach {
+                            if (Utils.dist(f, it) < f.r + it.r) {
+                                nearPairs.add(f.id + it.id)
+                            }
+                        }
+                    }
                 })
+
                 val newDist = Utils.getDistToEnemiesTest(testFragments, testEnemies)
+                nearPairs.forEach { newDist[it] = -1000f }
 
                 //считаем разницу дистанций и выбираем максимальную (при наличии)
                 var maxDeltaDist = 0f
@@ -113,15 +124,15 @@ class Strategy {
                 }
             }
 
-            if (data.food.isEmpty()) {
-                idlePoint = getIdlePoint(data, world, idlePoint)
-                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
-            } else {
-                idlePoint = null
-                println(doEat(data, world))
-            }
+//            if (data.food.isEmpty()) {
+//                idlePoint = getIdlePoint(data, world, idlePoint)
+//                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+//            } else {
+//                idlePoint = null
+//                println(doEat(data, world))
+//            }
 
-//            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
+            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
             tick++
         }
     }

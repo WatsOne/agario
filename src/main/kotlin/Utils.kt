@@ -67,7 +67,7 @@ object Utils {
         return result
     }
 
-    fun getDistToEnemiesTest(fragments: List<TestPlayer>, enemies: List<TestPlayer>): Map<String, Float> {
+    fun getDistToEnemiesTest(fragments: List<TestPlayer>, enemies: List<TestPlayer>): MutableMap<String, Float> {
         val result = mutableMapOf<String, Float>()
 
         fragments.forEach { f ->
