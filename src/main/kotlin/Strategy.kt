@@ -16,6 +16,7 @@ class Strategy {
         val prevEnemyPositions = mutableMapOf<String, Pair<Float, Float>?>()
         val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
 
+        var coolDownForEatSplit = 100
         while (true) {
             val tickData = JSONObject(readLine())
             data.parse(tickData, world)
@@ -137,13 +138,22 @@ class Strategy {
                 }
             }
 
+            var split = false
+            if (coolDownForEatSplit < 0) {
+                if (Utils.canSplit(data.me[0], data.me.size, world)) {
+                    split = true
+                }
+                coolDownForEatSplit = 100
+            }
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
-                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second, "Split" to split)))
             } else {
                 idlePoint = null
-                println(doEat(data, world))
+                val doEatPosition = doEat(data, world)
+                println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second, "Split" to split)))
             }
+            coolDownForEatSplit--
 
 //            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
             tick++
@@ -265,7 +275,7 @@ class Strategy {
         return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second))
     }
 
-    private fun doEat(data: Data, world: World): JSONObject {
+    private fun doEat(data: Data, world: World): Pair<Float, Float> {
 
         val start = System.currentTimeMillis()
         val total = mutableMapOf<Pair<Float, Float>, Float>()
@@ -309,7 +319,7 @@ class Strategy {
 //        logger.trace { "$tick calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
         val max = getMaxScore(total)
-        return JSONObject(mapOf("X" to max.first, "Y" to max.second))
+        return Pair(max.first, max.second)
     }
 
     private fun getMaxScore(scoreMap: Map<Pair<Float, Float>, Float>): Pair<Float, Float> =
