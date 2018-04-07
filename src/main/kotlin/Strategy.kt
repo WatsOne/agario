@@ -22,11 +22,14 @@ class Strategy {
 
             if (data.me.isEmpty()) return
 
+            val meMap = data.me.associateBy({ it.id }, { it })
+
             //очищаем вектора скоростей у противков пропавших из виду
             enemySpeedVectors.filter { !data.enemy.map { e -> e.id }.contains(it.key) }.forEach { enemySpeedVectors[it.key] = null }
             prevEnemyPositions.filter { !data.enemy.map { e -> e.id }.contains(it.key) }.forEach { prevEnemyPositions[it.key] = null }
 
             if (!data.enemy.isEmpty()) {
+                val enemyMap = data.enemy.associateBy({ it.id }, { it })
 
                 //обновляем вектора скоростей врагов
                 data.enemy.forEach {
@@ -43,10 +46,10 @@ class Strategy {
                 val enemyDist = Utils.getDistToEnemies(data.me, data.enemy)
 
                 //моделирем 10 тиков движения по векторам скоростей
-                val testFragments = enemyDist.keys.map { getById(it, data.me) }.map { TestPlayer(it) }
+                val testFragments = enemyDist.keys.map { meMap[it] }.map { TestPlayer(it!!) }
                 val testEnemies = enemyDist.values.flatten()
-                        .map { getById(it.first, data.enemy) }
-                        .map { TestPlayer(it, enemySpeedVectors[it.id]?.first ?: 0f, enemySpeedVectors[it.id]?.second ?: 0f) }
+                        .map { enemyMap[it.first] }
+                        .map { TestPlayer(it!!, enemySpeedVectors[it.id]?.first ?: 0f, enemySpeedVectors[it.id]?.second ?: 0f) }
 
                 val nearPairs = mutableListOf<String>()
                 repeat(10, {
@@ -77,20 +80,30 @@ class Strategy {
 
                 enemyDist.forEach { d ->
                     d.value.forEach {
-                        val deltaDist = it.second - (newDist[d.key + it.first] ?: it.second)
+                        val endDist = newDist[d.key + it.first] ?: it.second
+                        val deltaDist = it.second - endDist
                         if (deltaDist > maxDeltaDist) {
-                            maxDeltaDist = deltaDist
-                            dangerPair = Pair(d.key, it.first)
+                            if (deltaDist > 20) {
+                                maxDeltaDist = deltaDist
+                                dangerPair = Pair(d.key, it.first)
+                            } else {
+                                val rMe = meMap[d.key]!!.r
+                                val rEnemy = enemyMap[it.first]!!.r
+                                if ((rMe + rEnemy + 1000/rEnemy) > endDist) {
+                                    maxDeltaDist = deltaDist
+                                    dangerPair = Pair(d.key, it.first)
+                                }
+                            }
                         }
                     }
                 }
 
                 //если такая имеется то начинаем убегать
-                if (maxDeltaDist > 3) {
+                if (maxDeltaDist > 0) {
                     val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
                         TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
                     }
-                    println(doRun(getById(dangerPair?.first ?: "", data.me), enemies, world))
+                    println(doRun(meMap[dangerPair!!.first]!!, enemies, world))
                     continue
                 }
 
@@ -245,7 +258,6 @@ class Strategy {
         }
 
         val maxPoint = distance.maxBy { it.value }
-        println(distance)
         if (maxPoint?.value ?: 0f < 0) {
             return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second, "Split" to true))
         }
@@ -305,13 +317,5 @@ class Strategy {
 
     private fun getLeaderFragment(me: List<Me>): Me {
         return me.minBy { it.id.toFloat() } ?: me[0]
-    }
-
-    private fun getById(id: String, me: List<Me>): Me {
-        return me.find { it.id == id } ?: me[0]
-    }
-
-    private fun getById(id: String, enemies: List<Enemy>): Enemy {
-        return enemies.find { it.id == id } ?: enemies[0]
     }
 }
