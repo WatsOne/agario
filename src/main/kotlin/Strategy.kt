@@ -16,7 +16,7 @@ class Strategy {
         val prevEnemyPositions = mutableMapOf<String, Pair<Float, Float>?>()
         val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
 
-        var coolDownForEatSplit = 100
+        var coolDownForEatSplit = 200
         while (true) {
             val tickData = JSONObject(readLine())
             data.parse(tickData, world)
@@ -143,7 +143,7 @@ class Strategy {
                 if (Utils.canSplit(data.me[0], data.me.size, world)) {
                     split = true
                 }
-                coolDownForEatSplit = 100
+                coolDownForEatSplit = 200
             }
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
@@ -247,7 +247,7 @@ class Strategy {
             val playerTest = TestPlayer(player)
             var penaltyPoints = 0f
             val testEnemies = enemies.map { TestPlayer(it) }
-            repeat(10, {
+            repeat(5, {
                 Utils.applyDirect(d.first, d.second, playerTest, world)
                 testEnemies.forEach { Utils.applyDirect(player.x, playerTest.y, it, world) }
                 Utils.move(playerTest, world)
