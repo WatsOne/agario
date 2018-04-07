@@ -86,7 +86,7 @@ class Strategy {
                 }
 
                 //если такая имеется то начинаем убегать
-                if (maxDeltaDist > 0) {
+                if (maxDeltaDist > 3) {
                     val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
                         TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
                     }
@@ -222,9 +222,9 @@ class Strategy {
 
         Utils.rotatingPoints(player, 100f, world).forEach { d ->
             val playerTest = TestPlayer(player)
-            var penaltyPoints = 0
+            var penaltyPoints = 0f
             val testEnemies = enemies.map { TestPlayer(it) }
-            repeat(15, {
+            repeat(10, {
                 Utils.applyDirect(d.first, d.second, playerTest, world)
                 testEnemies.forEach { Utils.applyDirect(player.x, playerTest.y, it, world) }
                 Utils.move(playerTest, world)
@@ -232,11 +232,11 @@ class Strategy {
 
                 testEnemies.forEach {
                     if (Utils.canEat(it, playerTest)) {
-                        penaltyPoints -= 100
+                        penaltyPoints -= 100f
                     }
 
-                    //TODO рассеивающую функцию бы сюда
-                    penaltyPoints -= if (Utils.dist(it, playerTest) < playerTest.r + it.r) 50 else 0
+                    val dist = Utils.dist(it, playerTest)
+                    penaltyPoints -= if (dist < playerTest.r + it.r) dist else 0f
                 }
             })
 
@@ -245,6 +245,7 @@ class Strategy {
         }
 
         val maxPoint = distance.maxBy { it.value }
+        println(distance)
         if (maxPoint?.value ?: 0f < 0) {
             return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second, "Split" to true))
         }
