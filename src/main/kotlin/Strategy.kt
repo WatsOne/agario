@@ -124,15 +124,15 @@ class Strategy {
                 }
             }
 
-//            if (data.food.isEmpty()) {
-//                idlePoint = getIdlePoint(data, world, idlePoint)
-//                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
-//            } else {
-//                idlePoint = null
-//                println(doEat(data, world))
-//            }
+            if (data.food.isEmpty()) {
+                idlePoint = getIdlePoint(data, world, idlePoint)
+                println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+            } else {
+                idlePoint = null
+                println(doEat(data, world))
+            }
 
-            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
+//            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
             tick++
         }
     }
@@ -174,7 +174,7 @@ class Strategy {
             val testEnemy = TestPlayer(enemy, eSx, eSy)
 
             var canEat = false
-            for (i in 1..15) {
+            for (i in 1..5) {
                 Utils.applyDirect(d.first, d.second, testPlayer, world)
                 Utils.applyDirect(testEnemy.x + testPlayer.sx * 2, testEnemy.y + testPlayer.sy * 2, testEnemy, world)
                 Utils.move(testPlayer, world)
