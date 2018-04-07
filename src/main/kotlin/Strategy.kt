@@ -4,7 +4,7 @@ import kotlin.math.PI
 import kotlin.math.sqrt
 
 class Strategy {
-//    companion object: KLogging()
+    //    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -243,7 +243,7 @@ class Strategy {
     private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
         val distance = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPoints(player, 100f, world).forEach { d ->
+        Utils.rotatingPoints(player, 300f, world).forEach { d ->
             val playerTest = TestPlayer(player)
             var penaltyPoints = 0f
             val testEnemies = enemies.map { TestPlayer(it) }
@@ -255,11 +255,11 @@ class Strategy {
 
                 testEnemies.forEach {
                     if (Utils.canEat(it, playerTest)) {
-                        penaltyPoints -= 100f
+                        penaltyPoints -= 100000f
                     }
 
                     val dist = Utils.dist(it, playerTest)
-                    penaltyPoints -= if (dist < playerTest.r + it.r) dist else 0f
+                    penaltyPoints -= if (dist < playerTest.r + it.r) (playerTest.r + it.r - dist) * 100 else 0f
                 }
             })
 
@@ -284,7 +284,13 @@ class Strategy {
         val me = getLeaderFragment(data.me)
         val testFoods = data.food.map { TestFood(it) }
 
-        Utils.rotatingPoints(me, world).forEach { d ->
+        val rotatingPoints = if (data.me.size == 1) {
+            Utils.rotatingPoints(me, world)
+        } else {
+            Utils.rotatingPoints(me, 300f, world)
+        }
+
+        rotatingPoints.forEach { d ->
             val testPlayer = TestPlayer(me)
             testFoods.forEach { it.eaten = false }
 
