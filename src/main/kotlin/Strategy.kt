@@ -141,7 +141,7 @@ class Strategy {
 
             var split = false
             if (coolDownForEatSplit < 0) {
-                if (Utils.canSplit(data.me[0], data.me.size, world)) {
+                if (Utils.canSplit(data.me[0], data.me.size, world) && data.me.size <= (world.maxFragment / 2)) {
                     split = true
                 }
                 coolDownForEatSplit = 200
