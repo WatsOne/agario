@@ -192,7 +192,7 @@ class Strategy {
     private fun overtakeEnemy(player: Me, enemy: Enemy, eSx: Float, eSy: Float, world: World): JSONObject {
         val dist = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPoints(player, world).forEach { d ->
+        Utils.rotatingPoints(player, world, false).forEach { d ->
             val testPlayer = TestPlayer(player)
             val testEnemy = TestPlayer(enemy, eSx, eSy)
 
@@ -237,19 +237,19 @@ class Strategy {
 
     private fun getNewIdleRotatePoint(player: Me, world: World, angle: Float): Pair<Float, Float> {
         val currentAngle = Utils.getAngle(player.sx, player.sy)
-        return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + angle, world)
+        return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + angle, world, true)
     }
 
     private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
         val distance = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPoints(player, 300f, world).forEach { d ->
+        Utils.rotatingPoints(player, 300f, world, false).forEach { d ->
             val playerTest = TestPlayer(player)
             var penaltyPoints = 0f
             val testEnemies = enemies.map { TestPlayer(it) }
             repeat(5, {
                 Utils.applyDirect(d.first, d.second, playerTest, world)
-                testEnemies.forEach { Utils.applyDirect(player.x, playerTest.y, it, world) }
+                testEnemies.forEach { Utils.applyDirect(playerTest.x, playerTest.y, it, world) }
                 Utils.move(playerTest, world)
                 testEnemies.forEach { Utils.move(it, world) }
 
@@ -285,9 +285,9 @@ class Strategy {
         val testFoods = data.food.map { TestFood(it) }
 
         val rotatingPoints = if (data.me.size == 1) {
-            Utils.rotatingPoints(me, world)
+            Utils.rotatingPoints(me, world, true)
         } else {
-            Utils.rotatingPoints(me, 300f, world)
+            Utils.rotatingPoints(me, 300f, world, true)
         }
 
         rotatingPoints.forEach { d ->

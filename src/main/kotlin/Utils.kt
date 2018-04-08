@@ -2,30 +2,34 @@ import kotlin.math.*
 
 object Utils {
 
-    fun rotate(x: Float, y: Float, r: Float, length: Float, angle: Float, world: World): Pair<Float, Float> {
+    fun rotate(x: Float, y: Float, r: Float, length: Float, angle: Float, world: World, useCut: Boolean): Pair<Float, Float> {
         val tX = 0
         val cosA = cos(angle + PI.toFloat()/2)
         val sinA = sin(angle + PI.toFloat()/2)
         val rotateX = (tX*cosA + length*sinA + x)
         val rotateY = (-tX*sinA + y - length*cosA)
-        return Pair(max(r, min(world.width.toFloat() - r, rotateX)), max(r, min(world.height.toFloat() - r, rotateY)))
+        if (useCut) {
+            return Pair(max(r, min(world.width.toFloat() - r, rotateX)), max(r, min(world.height.toFloat() - r, rotateY)))
+        } else {
+            return Pair(rotateX, rotateY)
+        }
     }
 
-    fun rotatingPoints(player: Me, world: World): List<Pair<Float, Float>> {
-        return rotatingPoints(player, world, 4*player.r + 10, (180 * (15 / player.r)).toInt())
+    fun rotatingPoints(player: Me, world: World, useCut: Boolean): List<Pair<Float, Float>> {
+        return rotatingPoints(player, world, 4*player.r + 10, (180 * (15 / player.r)).toInt(), useCut)
     }
 
-    fun rotatingPoints(player: Me, length: Float, world: World): List<Pair<Float, Float>> {
-        return rotatingPoints(player, world, length, (180 * (15 / player.r)).toInt())
+    fun rotatingPoints(player: Me, length: Float, world: World, useCut: Boolean): List<Pair<Float, Float>> {
+        return rotatingPoints(player, world, length, (180 * (15 / player.r)).toInt(), useCut)
     }
 
-    private fun rotatingPoints(player: Me, world: World, length: Float, rotateCount: Int): List<Pair<Float, Float>> {
+    private fun rotatingPoints(player: Me, world: World, length: Float, rotateCount: Int, useCut: Boolean): List<Pair<Float, Float>> {
         val step = 2*PI.toFloat() / rotateCount
         val startAngle = getAngle(player.sx, player.sy)
         val points = mutableListOf<Pair<Float, Float>>()
 
         (1..rotateCount).forEach {
-            points.add(Utils.rotate(player.x, player.y, player.r, length,startAngle + (step*it), world))
+            points.add(Utils.rotate(player.x, player.y, player.r, length,startAngle + (step*it), world, useCut))
         }
         return points
     }
