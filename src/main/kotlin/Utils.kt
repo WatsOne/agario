@@ -8,10 +8,11 @@ object Utils {
         val sinA = sin(angle + PI.toFloat()/2)
         val rotateX = (tX*cosA + length*sinA + x)
         val rotateY = (-tX*sinA + y - length*cosA)
-        if (useCut) {
-            return Pair(max(r, min(world.width.toFloat() - r, rotateX)), max(r, min(world.height.toFloat() - r, rotateY)))
+
+        return if (useCut) {
+            Pair(max(r, min(world.width.toFloat() - r, rotateX)), max(r, min(world.height.toFloat() - r, rotateY)))
         } else {
-            return Pair(rotateX, rotateY)
+            Pair(max(0f, min(world.width.toFloat(), rotateX)), max(0f, min(world.height.toFloat(), rotateY)))
         }
     }
 
@@ -181,7 +182,7 @@ object Utils {
         if (rb + dx < world.width && lb + dx > 0) {
             player.x += dx
         } else {
-            player.x = max(0f, min(world.width.toFloat(), player.x + dx))
+            player.x = max(player.r, min(world.width.toFloat() - player.r, player.x + dx))
             player.speed = abs(dy)
             player.angle = if (dy >= 0) (PI.toFloat() / 2.0f) else (-PI.toFloat() / 2.0f)
         }
@@ -189,7 +190,7 @@ object Utils {
         if (db + dy < world.height && ub + dy > 0) {
             player.y += dy
         } else {
-            player.y = max(0f, min(world.height.toFloat(), player.y + dy))
+            player.y = max(player.r, min(world.height.toFloat() - player.r, player.y + dy))
             player.speed = abs(dx)
             player.angle = if (dx >= 0) 0f else PI.toFloat()
         }

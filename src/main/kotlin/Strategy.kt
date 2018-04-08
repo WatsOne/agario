@@ -18,6 +18,7 @@ class Strategy {
 
         var coolDownForEatSplit = 200
         while (true) {
+//        for (i in 1..6) {
             val tickData = JSONObject(readLine())
             data.parse(tickData, world)
 
@@ -104,7 +105,7 @@ class Strategy {
                     val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
                         TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
                     }
-                    println(doRun(meMap[dangerPair!!.first]!!, enemies, world))
+                    println(doRun(meMap[dangerPair!!.first]!!, data.me, enemies, world))
                     continue
                 }
 
@@ -240,17 +241,25 @@ class Strategy {
         return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + angle, world, true)
     }
 
-    private fun doRun(player: Me, enemies: List<TestPlayer>, world: World): JSONObject {
+    private fun doRun(player: Me, fragments: List<Me>, enemies: List<TestPlayer>, world: World): JSONObject {
         val distance = mutableMapOf<Pair<Float, Float>, Float>()
 
         Utils.rotatingPoints(player, 300f, world, false).forEach { d ->
-            val playerTest = TestPlayer(player)
             var penaltyPoints = 0f
             val testEnemies = enemies.map { TestPlayer(it) }
+            val testFragments = fragments.map { TestPlayer(it) }
+            val playerTest = testFragments.filter { it.id == player.id }[0]
             repeat(5, {
-                Utils.applyDirect(d.first, d.second, playerTest, world)
                 testEnemies.forEach { Utils.applyDirect(playerTest.x, playerTest.y, it, world) }
-                Utils.move(playerTest, world)
+                testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
+
+                for (i in 0 until fragments.size ) {
+                    for (j in i + 1 until fragments.size) {
+                        Utils.calculateCollision(testFragments[i], testFragments[j])
+                    }
+                }
+
+                testFragments.forEach { Utils.move(it, world) }
                 testEnemies.forEach { Utils.move(it, world) }
 
                 testEnemies.forEach {
