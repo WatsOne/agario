@@ -18,7 +18,7 @@ class Strategy {
 
         var coolDownForEatSplit = 200
         while (true) {
-//        for (i in 1..6) {
+//        for (i in 1..2) {
             val tickData = JSONObject(readLine())
             data.parse(tickData, world)
 
@@ -276,6 +276,8 @@ class Strategy {
             distance[d] = dist + penaltyPoints
         }
 
+        distance.forEach { distance[it.key] = it.value + pp(it.key, world) }
+
         val maxPoint = distance.maxBy { it.value }
         if (maxPoint?.value ?: 0f < 0) {
             return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second, "Split" to true))
@@ -342,5 +344,14 @@ class Strategy {
 
     private fun getLeaderFragment(me: List<Me>): Me {
         return me.minBy { it.id.toFloat() } ?: me[0]
+    }
+
+    private fun pp(d: Pair<Float, Float>, world: World): Float {
+        val w2 = world.width / 2
+        val h2 = world.height / 2
+
+        val x = if (d.first < w2) (d.first - w2) else (w2 - d.first)
+        val y = if (d.second < h2) (d.second - h2) else (h2 - d.second)
+        return x/100f + y/100f
     }
 }
