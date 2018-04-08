@@ -6,6 +6,8 @@ import kotlin.math.sqrt
 class Strategy {
     //    companion object: KLogging()
     var tick = 1
+    var prevDoRun: Pair<Float, Float>? = null
+    var prevFood: Pair<Float, Float>? = null
 
     fun go() {
         val config = JSONObject(readLine())
@@ -17,6 +19,8 @@ class Strategy {
         val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
 
         var coolDownForEatSplit = 200
+        var coolDownForFood = 20
+
         while (true) {
 //        for (i in 1..2) {
             val tickData = JSONObject(readLine())
@@ -101,6 +105,9 @@ class Strategy {
 
                 //если такая имеется то начинаем убегать
                 if (maxDeltaDist > 0) {
+                    prevFood = null
+                    coolDownForFood = 20
+
                     val enemies = enemySpeedVectors.filter { it.value != null }.map { e ->
                         TestPlayer(data.enemy.filter { it.id == e.key}[0], e.value?.first ?: 0f, e.value?.second ?: 0f)
                     }
@@ -108,6 +115,7 @@ class Strategy {
                     continue
                 }
 
+                prevDoRun = null
                 //иначе ищем ближайшую еду
                 val nearestPair = Utils.getNearestMeFoodPair(data.me, data.enemy)
                 if (nearestPair != null) {
@@ -127,6 +135,7 @@ class Strategy {
                     else {
                         //охотимся
                         if (canSplitStrike(player, food, nearestFoodSpeedVector.first, nearestFoodSpeedVector.second, data, world)) {
+                            prevFood = Pair(food.x, food.y)
                             println(JSONObject(mapOf("X" to food.x, "Y" to food.y, "Split" to true)))
                             continue
                         }
@@ -137,6 +146,14 @@ class Strategy {
                     }
                 }
             }
+
+            if (prevFood != null && coolDownForFood > 0) {
+                println(JSONObject(mapOf("X" to prevFood?.first, "Y" to prevFood?.second)))
+                coolDownForFood--
+                continue
+            }
+            coolDownForFood = 20
+            prevFood = null
 
             var split = false
             if (coolDownForEatSplit < 0) {
@@ -213,6 +230,7 @@ class Strategy {
         }
 
         val minDist = dist.minBy { it.value }
+        prevFood = Pair(minDist?.key?.first ?: 0f, minDist?.key?.second ?: 0f)
         return JSONObject(mapOf("X" to minDist?.key?.first, "Y" to minDist?.key?.second))
     }
 
@@ -277,9 +295,13 @@ class Strategy {
         }
 
         distance.forEach { distance[it.key] = it.value + pp(it.key, world) }
+        if (prevDoRun != null) {
+            distance.forEach { distance[it.key] = it.value - Utils.dist(prevDoRun!!.first, prevDoRun!!.second, it.key.first, it.key.second)/2 }
+        }
 
         val maxPoint = distance.maxBy { it.value }
-        if (maxPoint?.value ?: 0f < 0) {
+        prevDoRun = Pair(maxPoint?.key?.first ?: 0f, maxPoint?.key?.second ?: 0f)
+        if (maxPoint?.value ?: 0f < -50000f) {
             return JSONObject(mapOf("X" to maxPoint?.key?.first, "Y" to maxPoint?.key?.second, "Split" to true))
         }
 
@@ -352,6 +374,6 @@ class Strategy {
 
         val x = if (d.first < w2) (d.first - w2) else (w2 - d.first)
         val y = if (d.second < h2) (d.second - h2) else (h2 - d.second)
-        return x/100f + y/100f
+        return x/50f + y/50f
     }
 }
