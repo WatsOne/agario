@@ -220,11 +220,11 @@ class Strategy {
         val player = getLeaderFragment(data.me)
 
         return if (idlePoint == null) {
-            getNewIdleRotatePoint(player, world, PI.toFloat() / 20)
+            getNewIdleRotatePoint(player, world, PI.toFloat() / 5)
         } else {
             val dist = Utils.dist(player.x, player.y, idlePoint.first, idlePoint.second)
             if (dist < player.r) {
-                val newIdle = getNewIdleRotatePoint(player, world, PI.toFloat() / 25)
+                val newIdle = getNewIdleRotatePoint(player, world, PI.toFloat() / 5)
                 if (idlePoint.first == newIdle.first && idlePoint.second == newIdle.second) {
                     getNewIdleRotatePoint(player, world, PI.toFloat())
                 } else {
@@ -238,7 +238,7 @@ class Strategy {
 
     private fun getNewIdleRotatePoint(player: Me, world: World, angle: Float): Pair<Float, Float> {
         val currentAngle = Utils.getAngle(player.sx, player.sy)
-        return Utils.rotate(player.x, player.y, player.r, player.r + 40f, currentAngle + angle, world, true)
+        return Utils.rotate(player.x, player.y, player.r, 250f, currentAngle + angle, world, true)
     }
 
     private fun doRun(player: Me, fragments: List<Me>, enemies: List<TestPlayer>, world: World): JSONObject {
