@@ -89,9 +89,8 @@ class Strategy {
                                 maxDeltaDist = deltaDist
                                 dangerPair = Pair(d.key, it.first)
                             } else {
-                                val rMe = meMap[d.key]!!.r
                                 val rEnemy = enemyMap[it.first]!!.r
-                                if ((rMe + rEnemy + 1000/rEnemy) > endDist) {
+                                if ((rEnemy * VIS_FACTOR) > endDist) {
                                     maxDeltaDist = deltaDist
                                     dangerPair = Pair(d.key, it.first)
                                 }
@@ -267,8 +266,8 @@ class Strategy {
                         penaltyPoints -= 100000f
                     }
 
-                    val dist = Utils.dist(it, playerTest)
-                    penaltyPoints -= if (dist < playerTest.r + it.r) (playerTest.r + it.r - dist) * 100 else 0f
+//                    val dist = Utils.dist(it, playerTest)
+//                    penaltyPoints -= if (dist < playerTest.r + it.r) (playerTest.r + it.r - dist) * 100 else 0f
                 }
             })
 
