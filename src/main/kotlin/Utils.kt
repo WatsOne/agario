@@ -119,6 +119,10 @@ object Utils {
         return player.m > food.m * MASS_EAT_FACTOR
     }
 
+    fun canEatPotential(player: TestPlayer, food: TestPlayer): Boolean {
+        return player.m > food.m * MASS_EAT_FACTOR
+    }
+
     fun canEat(player: Circle, food: Circle): Boolean {
         return canEat(player.x, player.y, player.r, player.m, food.x, food.y, food.r, food.m)
     }
@@ -270,5 +274,43 @@ object Utils {
         dy += collisionForce * fragmentPart * collisionVectorY
         fragment.speed = sqrt(dx*dx + dy*dy)
         fragment.angle = atan2(dy, dx)
+    }
+
+    fun getPotentialVictims(data: Data): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+        data.me.forEach { m ->
+            data.enemy.forEach {
+                if (canEatPotential(m, it)) {
+                    res.add(Pair(m.id, it.id))
+                }
+            }
+        }
+
+        return res
+    }
+
+    fun getPotentialHunters(data: Data): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+
+        data.enemy.forEach { e ->
+            data.me.forEach {
+                if (canEat(e, it)) {
+                    res.add(Pair(e.id, it.id))
+                }
+            }
+        }
+
+        return res
+    }
+
+    fun rotatingPointsForSimulation(playerForAngle: Me, world: World, rotateCount: Int): List<Pair<Float, Float>> {
+        val step = 2*PI.toFloat() / rotateCount
+        val startAngle = getAngle(playerForAngle.sx, playerForAngle.sy)
+        val points = mutableListOf<Pair<Float, Float>>()
+
+        (1..rotateCount).forEach {
+            points.add(Utils.rotate(world.width / 2.toFloat(), world.height / 2.toFloat(), 0f, 1000f,startAngle + (step*it), world, false))
+        }
+        return points
     }
 }
