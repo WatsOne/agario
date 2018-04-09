@@ -290,13 +290,14 @@ class Strategy {
                 }
             })
 
-            val dist = testEnemies.map { Utils.dist(it, playerTest) }.min() ?: 0f
+            val dist = testEnemies.map { Utils.dist(it, playerTest) / 1000 }.min() ?: 0f
             distance[d] = dist + penaltyPoints
         }
 
-        distance.forEach { distance[it.key] = it.value + pp(it.key, world) }
+//        distance.forEach { distance[it.key] = it.value + pp(it.key, world) }
+
         if (prevDoRun != null) {
-            distance.forEach { distance[it.key] = it.value - Utils.dist(prevDoRun!!.first, prevDoRun!!.second, it.key.first, it.key.second)/2 }
+//            distance.forEach { distance[it.key] = it.value - Utils.dist(prevDoRun!!.first, prevDoRun!!.second, it.key.first, it.key.second)/100 }
         }
 
         val maxPoint = distance.maxBy { it.value }
@@ -374,6 +375,6 @@ class Strategy {
 
         val x = if (d.first < w2) (d.first - w2) else (w2 - d.first)
         val y = if (d.second < h2) (d.second - h2) else (h2 - d.second)
-        return x/50f + y/50f
+        return x/1000 + y/1000
     }
 }
