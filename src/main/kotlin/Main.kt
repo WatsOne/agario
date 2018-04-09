@@ -1,3 +1,3 @@
 fun main(args: Array<String>) {
-    Strategy().go()
+    Strategy2().go()
 }
