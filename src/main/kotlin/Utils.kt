@@ -59,6 +59,12 @@ object Utils {
         return dx*dx + dy*dy
     }
 
+    fun dist(xFrom: Int, yFrom: Int, xTarget: Int, yTarget: Int): Float {
+        val dx = xTarget - xFrom
+        val dy = yTarget - yFrom
+        return sqrt((dx*dx + dy*dy).toFloat())
+    }
+
     fun getDistToEnemies(fragments: List<Me>, enemies: List<Enemy>): Map<String, List<Pair<String, Float>>> {
         val result = mutableMapOf<String, MutableList<Pair<String, Float>>>()
         fragments.forEach { result[it.id] = mutableListOf() }
@@ -307,10 +313,21 @@ object Utils {
         val step = 2*PI.toFloat() / rotateCount
         val startAngle = getAngle(playerForAngle.sx, playerForAngle.sy)
         val points = mutableListOf<Pair<Float, Float>>()
+        val rotateLength = dist(world.width / 2, world.height / 2, world.width, world.height)
 
         (1..rotateCount).forEach {
-            points.add(Utils.rotate(world.width / 2.toFloat(), world.height / 2.toFloat(), 0f, 1000f,startAngle + (step*it), world, false))
+            points.add(rotateForSimulation(world.width / 2.toFloat(), world.height / 2.toFloat(),rotateLength,startAngle + (step*it), world))
         }
         return points
+    }
+
+    private fun rotateForSimulation(x: Float, y: Float, length: Float, angle: Float, world: World): Pair<Float, Float> {
+        val tX = 0
+        val cosA = cos(angle + PI.toFloat()/2)
+        val sinA = sin(angle + PI.toFloat()/2)
+        val rotateX = (tX*cosA + length*sinA + x)
+        val rotateY = (-tX*sinA + y - length*cosA)
+
+        return Pair(max(0f, min(world.width.toFloat(), rotateX)), max(0f, min(world.height.toFloat(), rotateY)))
     }
 }
