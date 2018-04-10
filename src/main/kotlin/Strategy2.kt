@@ -1,11 +1,11 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -251,7 +251,7 @@ class Strategy2 {
         val testFragments = mutableListOf<TestPlayer>()
         massOrderedFragments.forEach {
             if (it.m > MIN_SPLIT_MASS && maxPotentialFragment <= world.maxFragment) {
-                testFragments.plus(Utils.split(it))
+                testFragments.addAll(Utils.split(it))
                 maxPotentialFragment++
             } else {
                 testFragments.add(TestPlayer(it))
@@ -264,7 +264,7 @@ class Strategy2 {
         val victimsCount = victims.groupingBy { it.second }.eachCount()
         val huntersCount = hunters.groupingBy { it.second }.eachCount()
 
-        val fragmentMap = data.me.associateBy({ it.id }, { it })
+        val fragmentMap = testFragments.associateBy({ it.id }, { it })
         val enemyMap = data.enemy.associateBy({ it.id }, { it })
 
         val victimDist = mutableMapOf<Pair<String, String>, Float>()
@@ -280,15 +280,13 @@ class Strategy2 {
         }
 
         val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
-
-        val testFragmentsMap = testFragments.associateBy({it.id}, {it})
         val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
 
         repeat(5, {
             if (huntersTarget == null) {
                 testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
             } else {
-                val targetFragment = testFragmentsMap[huntersTarget] ?: testFragments[0]
+                val targetFragment = fragmentMap[huntersTarget] ?: testFragments[0]
                 testEnemies.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
             }
             testFragments.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
@@ -306,8 +304,8 @@ class Strategy2 {
         val victimNewDist = mutableMapOf<Pair<String, String>, Float>()
         val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
 
-        victimDist.forEach { victimNewDist[it.key] = Utils.dist(testFragmentsMap[it.key.first]!!, testEnemiesMap[it.key.second]!!) }
-        hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, testFragmentsMap[it.key.second]!!) }
+        victimDist.forEach { victimNewDist[it.key] = Utils.dist(fragmentMap[it.key.first]!!, testEnemiesMap[it.key.second]!!) }
+        hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, fragmentMap[it.key.second]!!) }
 
         val victimPoints = mutableMapOf<String, Float>()
         victims.forEach {
@@ -329,7 +327,7 @@ class Strategy2 {
 
             val prev = hunterPoints[it.second] ?: 0f
             val score = (firstBound*firstBound - secondBound*secondBound)/allDist
-            hunterPoints[it.second] = prev + score*testFragmentsMap[it.second]!!.m
+            hunterPoints[it.second] = prev + score*fragmentMap[it.second]!!.m
         }
         hunterPoints.forEach {
             hunterPoints[it.key] = hunterPoints[it.key]!! / huntersCount[it.key]!!

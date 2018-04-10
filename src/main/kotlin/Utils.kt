@@ -43,6 +43,10 @@ object Utils {
         return dist(player.x, player.y, target.x, target.y)
     }
 
+    fun dist(player: TestPlayer, target: Circle): Float {
+        return dist(player.x, player.y, target.x, target.y)
+    }
+
     fun dist(player: Circle, target: Circle): Float {
         return dist(player.x, player.y, target.x, target.y)
     }
@@ -253,6 +257,7 @@ object Utils {
         var collisionVectorY = player.y - fragment.y
 
         val vectorLen = sqrt(collisionVectorX * collisionVectorX + collisionVectorY * collisionVectorY)
+        if (vectorLen < 0.00000001) return
         collisionVectorX /= vectorLen
         collisionVectorY /= vectorLen
 
