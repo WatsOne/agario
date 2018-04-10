@@ -179,12 +179,12 @@ class Strategy {
     }
 
     private fun canSplitStrike(player: Me, enemy: Enemy, eSx: Float, eSy: Float, data: Data, world: World): Boolean {
-        if (Utils.canSplit(player, data.me.size, world)) {
-            val splitPlayer = Utils.split(player)
-            if (Utils.canEatPotentialForHunting(splitPlayer, enemy)) {
-                return canSplitOvertakeEnemy(splitPlayer, enemy, eSx, eSy, world)
-            }
-        }
+//        if (Utils.canSplit(player, data.me.size, world)) {
+//            val splitPlayer = Utils.split(player)
+//            if (Utils.canEatPotentialForHunting(splitPlayer, enemy)) {
+//                return canSplitOvertakeEnemy(splitPlayer, enemy, eSx, eSy, world)
+//            }
+//        }
 
         return false
     }

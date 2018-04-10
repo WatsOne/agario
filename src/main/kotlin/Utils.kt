@@ -114,7 +114,7 @@ object Utils {
     }
 
     fun canEatPotentialForHunting(player: TestPlayer, food: Circle): Boolean {
-        return player.m > food.m * (MASS_EAT_FACTOR + 0.10f)
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.20f)
     }
 
     fun canEatPotential(player: Circle, food: Circle): Boolean {
@@ -122,6 +122,10 @@ object Utils {
     }
 
     fun canEatPotential(player: TestPlayer, food: Circle): Boolean {
+        return player.m > food.m * MASS_EAT_FACTOR
+    }
+
+    fun canEatPotential(player: Circle, food: TestPlayer): Boolean {
         return player.m > food.m * MASS_EAT_FACTOR
     }
 
@@ -164,11 +168,6 @@ object Utils {
         }
 
         return false
-    }
-
-    fun split(me: Me): TestPlayer {
-        return TestPlayer(null, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true)
-
     }
 
     private fun applyViscosity(player: TestPlayer, maxSpeed: Float, world: World) {
@@ -309,6 +308,33 @@ object Utils {
         return res
     }
 
+    fun getPotentialVictims(me: List<TestPlayer>, enemies: List<Enemy>): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+        me.forEach { m ->
+            enemies.forEach {
+                if (canEatPotential(m, it)) {
+                    res.add(Pair(m.id!!, it.id))
+                }
+            }
+        }
+
+        return res
+    }
+
+    fun getPotentialHunters(me: List<TestPlayer>, enemies: List<Enemy>): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+
+        enemies.forEach { e ->
+            me.forEach {
+                if (canEatPotential(e, it)) {
+                    res.add(Pair(e.id, it.id!!))
+                }
+            }
+        }
+
+        return res
+    }
+
     fun rotatingPointsForSimulation(playerForAngle: Me, world: World, rotateCount: Int): List<Pair<Float, Float>> {
         val step = 2*PI.toFloat() / rotateCount
         val startAngle = getAngle(playerForAngle.sx, playerForAngle.sy)
@@ -329,5 +355,20 @@ object Utils {
         val rotateY = (-tX*sinA + y - length*cosA)
 
         return Pair(max(0f, min(world.width.toFloat(), rotateX)), max(0f, min(world.height.toFloat(), rotateY)))
+    }
+
+    fun canSplit(fragments: List<Me>, world: World): Boolean {
+        if (fragments.size <= world.maxFragment) {
+            return fragments.any { it.m > MIN_SPLIT_MASS }
+        }
+
+        return false
+    }
+
+    fun split(me: Me): List<TestPlayer> {
+        return mutableListOf(
+                TestPlayer(me.id + me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true),
+                TestPlayer(me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy)
+        )
     }
 }

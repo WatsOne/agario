@@ -45,8 +45,15 @@ class Strategy2 {
                 val hunterPairs = Utils.getPotentialHunters(data)
 
                 if (victimPairs.isNotEmpty() || hunterPairs.isNotEmpty()) {
-                    val simPoint = enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data)
-                    println(JSONObject(mapOf("X" to simPoint.first, "Y" to simPoint.second)))
+
+                    val simResult = if (Utils.canSplit(data.me, world)) {
+                        val splitPoints = splitSimulation(enemySpeedVectors, world, data)
+                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, true, splitPoints)
+                    } else {
+                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, false, 0f)
+                    }
+
+                    println(simResult)
                     tick++
                     continue
                 }
@@ -145,7 +152,7 @@ class Strategy2 {
         return me.minBy { it.id.toFloat() } ?: me[0]
     }
 
-    private fun enemySimulation(victims: List<Pair<String, String>>, hunters: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data): Pair<Float, Float> {
+    private fun enemySimulation(victims: List<Pair<String, String>>, hunters: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data, canSplit: Boolean, splitPoints: Float):  JSONObject {
 
         val victimsCount = victims.groupingBy { it.second }.eachCount()
         val huntersCount = hunters.groupingBy { it.second }.eachCount()
@@ -231,6 +238,106 @@ class Strategy2 {
             points[d] = allVictimPoints + allHunterPoints
         }
 
-        return points.maxBy { it.value }!!.key
+        val maxPoints = points.maxBy { it.value }!!
+
+        return JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second, "Split" to (canSplit && (splitPoints > maxPoints.value))))
+    }
+
+    private fun splitSimulation(enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data): Float {
+
+        val massOrderedFragments = data.me.sortedByDescending { it.m }
+        var maxPotentialFragment = world.maxFragment - data.me.size
+
+        val testFragments = mutableListOf<TestPlayer>()
+        massOrderedFragments.forEach {
+            if (it.m > MIN_SPLIT_MASS && maxPotentialFragment <= world.maxFragment) {
+                testFragments.plus(Utils.split(it))
+                maxPotentialFragment++
+            } else {
+                testFragments.add(TestPlayer(it))
+            }
+        }
+
+        val victims = Utils.getPotentialVictims(testFragments, data.enemy)
+        val hunters = Utils.getPotentialHunters(testFragments, data.enemy)
+
+        val victimsCount = victims.groupingBy { it.second }.eachCount()
+        val huntersCount = hunters.groupingBy { it.second }.eachCount()
+
+        val fragmentMap = data.me.associateBy({ it.id }, { it })
+        val enemyMap = data.enemy.associateBy({ it.id }, { it })
+
+        val victimDist = mutableMapOf<Pair<String, String>, Float>()
+        val hunterDist = mutableMapOf<Pair<String, String>, Float>()
+
+        victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
+        hunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
+
+        val huntersTarget = if (hunters.isEmpty()) {
+            null
+        } else {
+            hunterDist.minBy { it.value }?.key?.second
+        }
+
+        val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
+
+        val testFragmentsMap = testFragments.associateBy({it.id}, {it})
+        val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
+
+        repeat(5, {
+            if (huntersTarget == null) {
+                testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+            } else {
+                val targetFragment = testFragmentsMap[huntersTarget] ?: testFragments[0]
+                testEnemies.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
+            }
+            testFragments.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+
+            for (i in 0 until testFragments.size ) {
+                for (j in i + 1 until testFragments.size) {
+                    Utils.calculateCollision(testFragments[i], testFragments[j])
+                }
+            }
+
+            testFragments.forEach { Utils.move(it, world) }
+            testEnemies.forEach { Utils.move(it, world) }
+        })
+
+        val victimNewDist = mutableMapOf<Pair<String, String>, Float>()
+        val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
+
+        victimDist.forEach { victimNewDist[it.key] = Utils.dist(testFragmentsMap[it.key.first]!!, testEnemiesMap[it.key.second]!!) }
+        hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, testFragmentsMap[it.key.second]!!) }
+
+        val victimPoints = mutableMapOf<String, Float>()
+        victims.forEach {
+            val allDist = fragmentMap[it.first]!!.r * 4 + 10
+            val firstBound = max((allDist - victimNewDist[it]!!), 0f)
+            val secondBound = max((allDist - victimDist[it]!!), 0f)
+
+            val prev = victimPoints[it.second] ?: 0f
+            val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+            victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
+        }
+        victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / victimsCount[it.key]!! }
+
+        val hunterPoints = mutableMapOf<String, Float>()
+        hunters.forEach {
+            val allDist = enemyMap[it.first]!!.r * 4 + 10
+            val firstBound = max((allDist - hunterDist[it]!!), 0f)
+            val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
+
+            val prev = hunterPoints[it.second] ?: 0f
+            val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+            hunterPoints[it.second] = prev + score*testFragmentsMap[it.second]!!.m
+        }
+        hunterPoints.forEach {
+            hunterPoints[it.key] = hunterPoints[it.key]!! / huntersCount[it.key]!!
+        }
+
+        val allVictimPoints = victimPoints.values.sum()
+        val allHunterPoints = hunterPoints.values.sum()
+
+        return allVictimPoints + allHunterPoints
     }
 }
