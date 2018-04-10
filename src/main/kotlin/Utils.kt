@@ -294,7 +294,7 @@ object Utils {
 
         data.enemy.forEach { e ->
             data.me.forEach {
-                if (canEat(e, it)) {
+                if (canEatPotential(e, it)) {
                     res.add(Pair(e.id, it.id))
                 }
             }
