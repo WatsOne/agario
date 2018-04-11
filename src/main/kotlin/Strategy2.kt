@@ -172,6 +172,7 @@ class Strategy2 {
             hunterDist.minBy { it.value }?.key?.second
         }
 
+        val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
         Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
@@ -208,7 +209,7 @@ class Strategy2 {
 
             val victimPoints = mutableMapOf<String, Float>()
             victims.forEach {
-                val allDist = fragmentMap[it.first]!!.r * 4 + 10
+                val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
                 val firstBound = max((allDist - victimNewDist[it]!!), 0f)
                 val secondBound = max((allDist - victimDist[it]!!), 0f)
 
@@ -257,6 +258,8 @@ class Strategy2 {
                 testFragments.add(TestPlayer(it))
             }
         }
+
+        val visionFactor = if (testFragments.size == 1) 1f else sqrt(testFragments.size.toFloat())
 
         val victims = Utils.getPotentialVictims(testFragments, data.enemy)
         val hunters = Utils.getPotentialHunters(testFragments, data.enemy)
@@ -309,7 +312,7 @@ class Strategy2 {
 
         val victimPoints = mutableMapOf<String, Float>()
         victims.forEach {
-            val allDist = fragmentMap[it.first]!!.r * 4 + 10
+            val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
             val firstBound = max((allDist - victimNewDist[it]!!), 0f)
             val secondBound = max((allDist - victimDist[it]!!), 0f)
 
