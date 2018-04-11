@@ -248,7 +248,10 @@ class Strategy2 {
                 }
                 victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
             }
-            victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / (victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)) }
+            victimPoints.forEach {
+                val count = victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)
+                victimPoints[it.key] = if (count == 0) 0f else victimPoints[it.key]!! / count
+            }
 
             val hunterPoints = mutableMapOf<String, Float>()
             excludeMap.clear()
@@ -266,7 +269,8 @@ class Strategy2 {
                 hunterPoints[it.second] = prev + score*testFragmentsMap[it.second]!!.m
             }
             hunterPoints.forEach {
-                hunterPoints[it.key] = hunterPoints[it.key]!! / (huntersCount[it.key]!! - (excludeMap[it.key] ?: 0))
+                val count = huntersCount[it.key]!! - (excludeMap[it.key] ?: 0)
+                hunterPoints[it.key] = if (count == 0) 0f else hunterPoints[it.key]!! / count
             }
 
             val allVictimPoints = victimPoints.values.sum()
@@ -373,7 +377,10 @@ class Strategy2 {
             }
             victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
         }
-        victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / (victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)) }
+        victimPoints.forEach {
+            val count = victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)
+            victimPoints[it.key] = if (count == 0) 0f else victimPoints[it.key]!! / count
+        }
 
         val hunterPoints = mutableMapOf<String, Float>()
         excludeMap.clear()
@@ -391,7 +398,8 @@ class Strategy2 {
             hunterPoints[it.second] = prev + score*fragmentMap[it.second]!!.m
         }
         hunterPoints.forEach {
-            hunterPoints[it.key] = hunterPoints[it.key]!! / (huntersCount[it.key]!! - (excludeMap[it.key] ?: 0))
+            val count = huntersCount[it.key]!! - (excludeMap[it.key] ?: 0)
+            hunterPoints[it.key] = if (count == 0) 0f else hunterPoints[it.key]!! / count
         }
 
         val allVictimPoints = victimPoints.values.sum()
