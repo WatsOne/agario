@@ -159,15 +159,17 @@ class Strategy2 {
         val enemies = data.enemy
 
         if (hunters.isNotEmpty()) {
-            val minHunter = hunters.mapNotNull { enemyMap[it.first] }.minBy { it.r }!!
+            val maxMe = data.me.maxBy { it.r }!!
+            val newMass = maxMe.m * MASS_EAT_FACTOR + 1
+            val newR = 2 * sqrt(newMass)
             val w = world.width
             val h = world.height
 
             val fakeHunters = listOf(
-                    Enemy("f00", minHunter.r, minHunter.r, minHunter.r, minHunter.m),
-                    Enemy("f01", w - minHunter.r, minHunter.r, minHunter.r, minHunter.m),
-                    Enemy("f02", w -minHunter.r, h - minHunter.r, minHunter.r, minHunter.m),
-                    Enemy("f03", minHunter.r, h - minHunter.r, minHunter.r, minHunter.m)
+                    Enemy("f00", newR, newR, newR, newMass),
+                    Enemy("f01", w - newR, newR, newR, newMass),
+                    Enemy("f02", w - newR, h - newR, newR, newMass),
+                    Enemy("f03", newR, h - newR, newR, newMass)
             )
 
             enemies.addAll(fakeHunters)
@@ -232,6 +234,7 @@ class Strategy2 {
             hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, testFragmentsMap[it.key.second]!!) }
 
             val victimPoints = mutableMapOf<String, Float>()
+            val excludeMap = mutableMapOf<String, Int>()
             victims.forEach {
                 val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
                 val firstBound = max((allDist - victimNewDist[it]!!), 0f)
@@ -239,11 +242,16 @@ class Strategy2 {
 
                 val prev = victimPoints[it.second] ?: 0f
                 val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+                if (score == 0f) {
+                    val prevExclude = excludeMap[it.second] ?: 0
+                    excludeMap[it.second] = prevExclude + 1
+                }
                 victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
             }
-            victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / victimsCount[it.key]!! }
+            victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / (victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)) }
 
             val hunterPoints = mutableMapOf<String, Float>()
+            excludeMap.clear()
             hunters.forEach {
                 val allDist = enemyMap[it.first]!!.r * 4 + 10
                 val firstBound = max((allDist - hunterDist[it]!!), 0f)
@@ -251,10 +259,14 @@ class Strategy2 {
 
                 val prev = hunterPoints[it.second] ?: 0f
                 val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+                if (score == 0f) {
+                    val prevExclude = excludeMap[it.second] ?: 0
+                    excludeMap[it.second] = prevExclude + 1
+                }
                 hunterPoints[it.second] = prev + score*testFragmentsMap[it.second]!!.m
             }
             hunterPoints.forEach {
-                hunterPoints[it.key] = hunterPoints[it.key]!! / huntersCount[it.key]!!
+                hunterPoints[it.key] = hunterPoints[it.key]!! / (huntersCount[it.key]!! - (excludeMap[it.key] ?: 0))
             }
 
             val allVictimPoints = victimPoints.values.sum()
@@ -347,6 +359,7 @@ class Strategy2 {
         hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, fragmentMap[it.key.second]!!) }
 
         val victimPoints = mutableMapOf<String, Float>()
+        val excludeMap = mutableMapOf<String, Int>()
         victims.forEach {
             val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
             val firstBound = max((allDist - victimNewDist[it]!!), 0f)
@@ -354,11 +367,16 @@ class Strategy2 {
 
             val prev = victimPoints[it.second] ?: 0f
             val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+            if (score == 0f) {
+                val prevExclude = excludeMap[it.second] ?: 0
+                excludeMap[it.second] = prevExclude + 1
+            }
             victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
         }
-        victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / victimsCount[it.key]!! }
+        victimPoints.forEach { victimPoints[it.key] = victimPoints[it.key]!! / (victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)) }
 
         val hunterPoints = mutableMapOf<String, Float>()
+        excludeMap.clear()
         hunters.forEach {
             val allDist = enemyMap[it.first]!!.r * 4 + 10
             val firstBound = max((allDist - hunterDist[it]!!), 0f)
@@ -366,10 +384,14 @@ class Strategy2 {
 
             val prev = hunterPoints[it.second] ?: 0f
             val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+            if (score == 0f) {
+                val prevExclude = excludeMap[it.second] ?: 0
+                excludeMap[it.second] = prevExclude + 1
+            }
             hunterPoints[it.second] = prev + score*fragmentMap[it.second]!!.m
         }
         hunterPoints.forEach {
-            hunterPoints[it.key] = hunterPoints[it.key]!! / huntersCount[it.key]!!
+            hunterPoints[it.key] = hunterPoints[it.key]!! / (huntersCount[it.key]!! - (excludeMap[it.key] ?: 0))
         }
 
         val allVictimPoints = victimPoints.values.sum()
