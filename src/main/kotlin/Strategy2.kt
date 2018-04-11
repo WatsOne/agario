@@ -47,8 +47,8 @@ class Strategy2 {
                 if (victimPairs.isNotEmpty() || hunterPairs.isNotEmpty()) {
 
                     val simResult = if (Utils.canSplit(data.me, world)) {
-                        val splitPoints = splitSimulation(enemySpeedVectors, world, data)
-                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, true, splitPoints)
+                        val splitPoints = splitSimulation(victimPairs.size, hunterPairs.size, enemySpeedVectors, world, data)
+                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, splitPoints.first, splitPoints.second)
                     } else {
                         enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, false, 0f)
                     }
@@ -209,6 +209,12 @@ class Strategy2 {
                 }
                 testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
 
+                for (i in 0 until testEnemies.size ) {
+                    for (j in i + 1 until testEnemies.size) {
+                        Utils.calculateCollision(testEnemies[i], testEnemies[j])
+                    }
+                }
+
                 for (i in 0 until testFragments.size ) {
                     for (j in i + 1 until testFragments.size) {
                         Utils.calculateCollision(testFragments[i], testFragments[j])
@@ -262,7 +268,7 @@ class Strategy2 {
         return JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second, "Split" to (canSplit && (splitPoints > maxPoints.value))))
     }
 
-    private fun splitSimulation(enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data): Float {
+    private fun splitSimulation(victimsCountInit: Int, huntersCountInit: Int, enemyVectors: Map<String, Pair<Float, Float>?>, world: World, data: Data): Pair<Boolean, Float> {
 
         val massOrderedFragments = data.me.sortedByDescending { it.m }
         var maxPotentialFragment = world.maxFragment - data.me.size
@@ -281,6 +287,12 @@ class Strategy2 {
 
         val victims = Utils.getPotentialVictims(testFragments, data.enemy)
         val hunters = Utils.getPotentialHunters(testFragments, data.enemy)
+
+        if (victimsCountInit > 0) {
+            if (victims.size <= victimsCountInit && hunters.size > huntersCountInit) {
+                return Pair(false, 0f)
+            }
+        }
 
         val victimsCount = victims.groupingBy { it.second }.eachCount()
         val huntersCount = hunters.groupingBy { it.second }.eachCount()
@@ -311,6 +323,12 @@ class Strategy2 {
                 testEnemies.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
             }
             testFragments.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+
+            for (i in 0 until testEnemies.size ) {
+                for (j in i + 1 until testEnemies.size) {
+                    Utils.calculateCollision(testEnemies[i], testEnemies[j])
+                }
+            }
 
             for (i in 0 until testFragments.size ) {
                 for (j in i + 1 until testFragments.size) {
@@ -357,6 +375,6 @@ class Strategy2 {
         val allVictimPoints = victimPoints.values.sum()
         val allHunterPoints = hunterPoints.values.sum()
 
-        return allVictimPoints + allHunterPoints
+        return Pair(true, allVictimPoints + allHunterPoints)
     }
 }
