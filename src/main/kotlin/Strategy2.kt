@@ -107,7 +107,7 @@ class Strategy2 {
         val me = getLeaderFragment(data.me)
         val testFoods = data.food.map { TestFood(it) }
 
-        Utils.rotatingPoints(me, 1000f, world, true).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
             val testPlayer = TestPlayer(me)
             testFoods.forEach { it.eaten = false }
 
