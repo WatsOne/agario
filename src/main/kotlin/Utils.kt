@@ -248,6 +248,8 @@ object Utils {
     }
 
     fun calculateCollision(player: TestPlayer, fragment: TestPlayer) {
+        if (player.isFast || fragment.isFast) return
+
         val dist = dist(player, fragment)
         if (dist >= player.r + fragment.r) {
             return
