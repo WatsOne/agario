@@ -152,13 +152,31 @@ class Strategy2 {
         return me.minBy { it.id.toFloat() } ?: me[0]
     }
 
-    private fun enemySimulation(victims: List<Pair<String, String>>, hunters: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data, canSplit: Boolean, splitPoints: Float):  JSONObject {
+    private fun enemySimulation(victims: List<Pair<String, String>>, huntersP: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data, canSplit: Boolean, splitPoints: Float):  JSONObject {
+        val fragmentMap = data.me.associateBy({ it.id }, { it })
+        var enemyMap = data.enemy.associateBy({ it.id }, { it })
+        var hunters = huntersP
+        val enemies = data.enemy
+
+        if (hunters.isNotEmpty()) {
+            val minHunter = hunters.mapNotNull { enemyMap[it.first] }.minBy { it.r }!!
+            val w = world.width
+            val h = world.height
+
+            val fakeHunters = listOf(
+                    Enemy("f00", minHunter.r, minHunter.r, minHunter.r, minHunter.m),
+                    Enemy("f01", w - minHunter.r, minHunter.r, minHunter.r, minHunter.m),
+                    Enemy("f02", w -minHunter.r, h - minHunter.r, minHunter.r, minHunter.m),
+                    Enemy("f03", minHunter.r, h - minHunter.r, minHunter.r, minHunter.m)
+            )
+
+            enemies.addAll(fakeHunters)
+            hunters = Utils.getPotentialHuntersTest(data.me, enemies)
+            enemyMap = enemies.associateBy({ it.id }, { it })
+        }
 
         val victimsCount = victims.groupingBy { it.second }.eachCount()
         val huntersCount = hunters.groupingBy { it.second }.eachCount()
-
-        val fragmentMap = data.me.associateBy({ it.id }, { it })
-        val enemyMap = data.enemy.associateBy({ it.id }, { it })
 
         val victimDist = mutableMapOf<Pair<String, String>, Float>()
         val hunterDist = mutableMapOf<Pair<String, String>, Float>()
@@ -177,7 +195,7 @@ class Strategy2 {
 
         Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }
-            val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
+            val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
             val testFragmentsMap = testFragments.associateBy({it.id}, {it})
             val testEnemiesMap = testEnemies.associateBy({it.id}, {it})

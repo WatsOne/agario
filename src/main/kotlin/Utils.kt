@@ -342,6 +342,20 @@ object Utils {
         return res
     }
 
+    fun getPotentialHuntersTest(me: List<Me>, enemies: List<Enemy>): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+
+        enemies.forEach { e ->
+            me.forEach {
+                if (canEatPotential(e, it)) {
+                    res.add(Pair(e.id, it.id))
+                }
+            }
+        }
+
+        return res
+    }
+
     fun rotatingPointsForSimulation(playerForAngle: Me, world: World, rotateCount: Int): List<Pair<Float, Float>> {
         val step = 2*PI.toFloat() / rotateCount
         val startAngle = getAngle(playerForAngle.sx, playerForAngle.sy)
