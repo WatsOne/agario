@@ -282,8 +282,8 @@ object Utils {
         val fragmentPart = player.m / sumMass
         dx = fragment.speed * cos(fragment.angle)
         dy = fragment.speed * sin(fragment.angle)
-        dx += collisionForce * fragmentPart * collisionVectorX
-        dy += collisionForce * fragmentPart * collisionVectorY
+        dx -= collisionForce * fragmentPart * collisionVectorX
+        dy -= collisionForce * fragmentPart * collisionVectorY
         fragment.speed = sqrt(dx*dx + dy*dy)
         fragment.angle = atan2(dy, dx)
     }
