@@ -1,11 +1,11 @@
-//import mu.KLogging
+import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-//    companion object: KLogging()
+    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -18,6 +18,8 @@ class Strategy2 {
         val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
 
         while (true) {
+            val start = System.currentTimeMillis()
+
             val tickData = JSONObject(readLine())
             data.parse(tickData, world)
 
@@ -28,8 +30,6 @@ class Strategy2 {
             prevEnemyPositions.filter { !data.enemy.map { e -> e.id }.contains(it.key) }.forEach { prevEnemyPositions[it.key] = null }
 
             if (!data.enemy.isEmpty()) {
-                val enemyMap = data.enemy.associateBy({ it.id }, { it })
-
                 //обновляем вектора скоростей врагов
                 data.enemy.forEach {
                     val prevEnemyPos = prevEnemyPositions[it.id]
@@ -55,16 +55,19 @@ class Strategy2 {
 
                     println(simResult)
                     tick++
+                    logger.trace { "$tick: ${System.currentTimeMillis() - start} ms." }
                     continue
                 }
             }
 
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
+                logger.trace { "$tick: ${System.currentTimeMillis() - start} ms." }
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
                 idlePoint = null
                 val doEatPosition = doEat(data, world)
+                logger.trace { "$tick: ${System.currentTimeMillis() - start} ms." }
                 println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
             }
 
@@ -117,7 +120,7 @@ class Strategy2 {
             var ppt = 0f
             var tick = 0
 
-            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && eaten > 0 && tick <= 30) {
+            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && eaten > 0 && tick <= 25) {
 
                 Utils.applyDirect(d.first, d.second, testPlayer, world)
                 Utils.move(testPlayer, world)
@@ -160,16 +163,16 @@ class Strategy2 {
 
         if (hunters.isNotEmpty()) {
             val maxMe = data.me.maxBy { it.r }!!
-            val newMass = maxMe.m * MASS_EAT_FACTOR + 1
+            val newMass = maxMe.m * MASS_EAT_FACTOR + 5
             val newR = 2 * sqrt(newMass)
             val w = world.width
             val h = world.height
 
             val fakeHunters = listOf(
-                    Enemy("f00", newR, newR, newR, newMass),
-                    Enemy("f01", w - newR, newR, newR, newMass),
-                    Enemy("f02", w - newR, h - newR, newR, newMass),
-                    Enemy("f03", newR, h - newR, newR, newMass)
+                    Enemy("f00", 0f, 0f, newR, newMass),
+                    Enemy("f01", w.toFloat(), 0f, newR, newMass),
+                    Enemy("f02", w.toFloat(), h.toFloat(), newR, newMass),
+                    Enemy("f03", 0f, h.toFloat(), newR, newMass)
             )
 
             enemies.addAll(fakeHunters)
@@ -195,25 +198,26 @@ class Strategy2 {
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 100).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }
             val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
             val testFragmentsMap = testFragments.associateBy({it.id}, {it})
             val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
 
+            val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }
             repeat(5, {
                 if (huntersTarget == null) {
-                    testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+                    testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
                 } else {
                     val targetFragment = testFragmentsMap[huntersTarget] ?: testFragments[0]
-                    testEnemies.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
+                    testEnemiesForMoving.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
                 }
                 testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
 
-                for (i in 0 until testEnemies.size ) {
-                    for (j in i + 1 until testEnemies.size) {
-                        Utils.calculateCollision(testEnemies[i], testEnemies[j])
+                for (i in 0 until testEnemiesForMoving.size ) {
+                    for (j in i + 1 until testEnemiesForMoving.size) {
+                        Utils.calculateCollision(testEnemiesForMoving[i], testEnemiesForMoving[j])
                     }
                 }
 
@@ -224,7 +228,7 @@ class Strategy2 {
                 }
 
                 testFragments.forEach { Utils.move(it, world) }
-                testEnemies.forEach { Utils.move(it, world) }
+                testEnemiesForMoving.forEach { Utils.move(it, world) }
             })
 
             val victimNewDist = mutableMapOf<Pair<String, String>, Float>()

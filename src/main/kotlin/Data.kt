@@ -26,31 +26,31 @@ class Data {
             val mine = meArray.getJSONObject(i)
             me.add(Me(
                     id = mine.getString("Id"),
-                    x = mine.getFloat("X"),
-                    y = mine.getFloat("Y"),
-                    r = mine.getFloat("R"),
-                    m = mine.getFloat("M"),
-                    sx = mine.getFloat("SX"),
-                    sy = mine.getFloat("SY")))
+                    x = mine.getDouble("X").toFloat(),
+                    y = mine.getDouble("Y").toFloat(),
+                    r = mine.getDouble("R").toFloat(),
+                    m = mine.getDouble("M").toFloat(),
+                    sx = mine.getDouble("SX").toFloat(),
+                    sy = mine.getDouble("SY").toFloat()))
         }
 
         for (i in 0 until objectArray.length()) {
             val obj = objectArray.getJSONObject(i)
             when (obj.getString("T")) {
-                "F" -> food.add(Food(obj.getFloat("X"), obj.getFloat("Y"), world.foodMass))
-                "E" -> ejection.add(Ejection(obj.getFloat("X"), obj.getFloat("Y")))
+                "F" -> food.add(Food(obj.getDouble("X").toFloat(), obj.getDouble("Y").toFloat(), world.foodMass))
+                "E" -> ejection.add(Ejection(obj.getDouble("X").toFloat(), obj.getDouble("Y").toFloat()))
                 "V" -> virus.add(Virus(
                         id = obj.getString("Id"),
-                        x = obj.getFloat("X"),
-                        y = obj.getFloat("Y"),
-                        m = obj.getFloat("M"),
+                        x = obj.getDouble("X").toFloat(),
+                        y = obj.getDouble("Y").toFloat(),
+                        m = obj.getDouble("M").toFloat(),
                         r = world.virusRadius))
                 "P" -> enemy.add(Enemy(
                         id = obj.getString("Id"),
-                        x = obj.getFloat("X"),
-                        y = obj.getFloat("Y"),
-                        r = obj.getFloat("R"),
-                        m = obj.getFloat("M")))
+                        x = obj.getDouble("X").toFloat(),
+                        y = obj.getDouble("Y").toFloat(),
+                        r = obj.getDouble("R").toFloat(),
+                        m = obj.getDouble("M").toFloat()))
             }
         }
     }
