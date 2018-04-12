@@ -157,18 +157,23 @@ class Strategy2 {
         val enemies = data.enemy
 
         if (hunters.isNotEmpty()) {
-            val maxMe = data.me.maxBy { it.r }!!
-            val newMass = maxMe.m * MASS_EAT_FACTOR + 5
-            val newR = 2 * sqrt(newMass)
+            val targetFragments = hunters.map { it.second }.distinct()
             val w = world.width
             val h = world.height
 
-            val fakeHunters = listOf(
-                    Enemy("f00", 0f, 0f, newR, newMass),
-                    Enemy("f01", w.toFloat(), 0f, newR, newMass),
-                    Enemy("f02", w.toFloat(), h.toFloat(), newR, newMass),
-                    Enemy("f03", 0f, h.toFloat(), newR, newMass)
-            )
+            val fakeHunters = mutableListOf<Enemy>()
+
+            targetFragments.mapNotNull { fragmentMap[it] }.forEach {
+                val newMass = it.m * MASS_EAT_FACTOR + 1
+                val newR = 2 * sqrt(newMass)
+
+                //слева и справа
+                fakeHunters.add(Enemy("f00" + it.id, 0f, it.y, newR, newMass))
+                fakeHunters.add(Enemy("f01" + it.id, w.toFloat(), it.y, newR, newMass))
+                //снизу и сверху
+                fakeHunters.add(Enemy("f02" + it.id, it.x, 0f, newR, newMass))
+                fakeHunters.add(Enemy("f03" + it.id, it.x, h.toFloat(), newR, newMass))
+            }
 
             enemies.addAll(fakeHunters)
             hunters = Utils.getPotentialHuntersTest(data.me, enemies)
