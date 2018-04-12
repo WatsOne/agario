@@ -319,7 +319,7 @@ object Utils {
         val res = mutableListOf<Pair<String, String>>()
         me.forEach { m ->
             enemies.forEach {
-                if (canEatPotential(m, it)) {
+                if (canEatPotentialForHunting(m, it)) {
                     res.add(Pair(m.id!!, it.id))
                 }
             }

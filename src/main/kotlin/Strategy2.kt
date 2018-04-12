@@ -1,11 +1,11 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -18,8 +18,6 @@ class Strategy2 {
         val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
 
         while (true) {
-            val start = System.currentTimeMillis()
-
             val tickData = JSONObject(readLine())
             data.parse(tickData, world)
 
@@ -55,19 +53,16 @@ class Strategy2 {
 
                     println(simResult)
                     tick++
-                    logger.trace { "$tick: ${System.currentTimeMillis() - start} ms." }
                     continue
                 }
             }
 
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
-                logger.trace { "$tick: ${System.currentTimeMillis() - start} ms." }
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
                 idlePoint = null
                 val doEatPosition = doEat(data, world)
-                logger.trace { "$tick: ${System.currentTimeMillis() - start} ms." }
                 println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
             }
 
