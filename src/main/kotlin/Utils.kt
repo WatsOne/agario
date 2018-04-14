@@ -328,6 +328,19 @@ object Utils {
         return res
     }
 
+    fun getPotentialVictimsTestTest(me: List<TestPlayer>, enemies: List<TestPlayer>): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+        me.forEach { m ->
+            enemies.forEach {
+                if (canEatPotential(m, it)) {
+                    res.add(Pair(m.id!!, it.id!!))
+                }
+            }
+        }
+
+        return res
+    }
+
     fun getPotentialHunters(me: List<TestPlayer>, enemies: List<Enemy>): List<Pair<String, String>> {
         val res = mutableListOf<Pair<String, String>>()
 
@@ -349,6 +362,20 @@ object Utils {
             me.forEach {
                 if (canEatPotential(e, it)) {
                     res.add(Pair(e.id, it.id))
+                }
+            }
+        }
+
+        return res
+    }
+
+    fun getPotentialHuntersTestTest(me: List<TestPlayer>, enemies: List<TestPlayer>): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+
+        enemies.forEach { e ->
+            me.forEach {
+                if (canEatPotential(e, it)) {
+                    res.add(Pair(e.id!!, it.id!!))
                 }
             }
         }
@@ -391,5 +418,14 @@ object Utils {
                 TestPlayer(me.id + me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true),
                 TestPlayer(me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy)
         )
+    }
+
+    fun canShrink(player: TestPlayer): Boolean {
+        return player.m > MIN_SHRINK_MASS
+    }
+
+    fun shrink(player: TestPlayer) {
+        player.m -= ((player.m - MIN_SHRINK_MASS) * SHRINK_FACTOR)
+        player.r = 2 * sqrt(player.m)
     }
 }

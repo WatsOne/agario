@@ -199,13 +199,25 @@ class Strategy2 {
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
         Utils.rotatingPointsForSimulation(data.me[0], world, 100).forEach { d ->
-            val testFragments = data.me.map { TestPlayer(it) }
+            val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
             val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
             val testFragmentsMap = testFragments.associateBy({it.id}, {it})
             val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
 
-            val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }
+            val testVictimPairs = victims.toMutableList()
+            val testHunterPairs = hunters.toMutableList()
+
+            val testVictimDist = victimDist.toMutableMap()
+            val testHunterDist = hunterDist.toMutableMap()
+
+            val victimNewDist = mutableMapOf<Pair<String, String>, Float>()
+            val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
+
+            var testVictimsCount = victimsCount.toMap()
+            var testHuntersCount = huntersCount.toMap()
+
+            val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }.toMutableList()
             repeat(5, {
                 if (huntersTarget == null) {
                     testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
@@ -229,20 +241,86 @@ class Strategy2 {
 
                 testFragments.forEach { Utils.move(it, world) }
                 testEnemiesForMoving.forEach { Utils.move(it, world) }
+
+                if (tick % SHRINK_EVERY_TICK == 0) {
+                    testFragments.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
+                    testEnemiesForMoving.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
+                }
+
+                val fragmentsToRemove = mutableListOf<TestPlayer>()
+                testFragments.forEach { f ->
+                    val nearestEnemy = testEnemiesForMoving.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
+                    if (nearestEnemy != null) {
+
+                        hunterNewDist[Pair(nearestEnemy.id!!, f.id!!)] = 0f
+
+                        val otherPairs = testHunterPairs.filter { it.second == f.id }
+                        otherPairs.forEach {
+                            hunterNewDist[it] = Utils.dist(testEnemiesMap[it.first]!!, f)
+                        }
+
+                        nearestEnemy.m += f.m
+                        nearestEnemy.needUpdateMass = true
+
+                        fragmentsToRemove.add(f)
+                    }
+                }
+                fragmentsToRemove.forEach { testFragments.remove(it) }
+
+                val huntersToRemove = mutableListOf<TestPlayer>()
+                testEnemiesForMoving.forEach { e ->
+                    val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
+                    if (nearestFragment != null) {
+
+                        victimNewDist[Pair(nearestFragment.id!!, e.id!!)] = 0f
+
+                        val otherPairs = testVictimPairs.filter { it.second == e.id }
+                        otherPairs.forEach {
+                            victimNewDist[it] = Utils.dist(testFragmentsMap[it.first]!!, e)
+                        }
+
+                        nearestFragment.m += e.m
+                        nearestFragment.needUpdateMass = true
+
+                        huntersToRemove.add(e)
+                    }
+                }
+                huntersToRemove.forEach { testEnemiesForMoving.remove(it) }
+
+                testFragments.filter { it.needUpdateMass }.forEach {
+                    it.r = 2 * sqrt(it.m)
+                    it.needUpdateMass = false
+                }
+                testEnemiesForMoving.filter { it.needUpdateMass }.forEach {
+                    it.r = 2 * sqrt(it.m)
+                    it.needUpdateMass = false
+                }
+
+                val newVictimPairs = Utils.getPotentialVictimsTestTest(testFragments, testEnemiesForMoving)
+                val newHunterPairs = Utils.getPotentialHuntersTestTest(testFragments, testEnemiesForMoving)
+
+                newVictimPairs.filter { !testVictimPairs.contains(it) }.forEach {
+                    testVictimPairs.add(it)
+                    testVictimDist[it] = Utils.dist(testFragmentsMap[it.first]!!, testEnemiesMap[it.second]!!)
+                    testVictimsCount = testVictimPairs.groupingBy { it.second }.eachCount()
+                }
+
+                newHunterPairs.filter { !testHunterPairs.contains(it) }.forEach {
+                    testHunterPairs.add(it)
+                    testHunterDist[it] = Utils.dist(testEnemiesMap[it.first]!!, testFragmentsMap[it.second]!!)
+                    testHuntersCount = testHunterPairs.groupingBy { it.second }.eachCount()
+                }
             })
 
-            val victimNewDist = mutableMapOf<Pair<String, String>, Float>()
-            val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
-
-            victimDist.forEach { victimNewDist[it.key] = Utils.dist(testFragmentsMap[it.key.first]!!, testEnemiesMap[it.key.second]!!) }
-            hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, testFragmentsMap[it.key.second]!!) }
+            testVictimDist.forEach { victimNewDist.putIfAbsent(it.key, Utils.dist(testFragmentsMap[it.key.first]!!, testEnemiesMap[it.key.second]!!)) }
+            testHunterDist.forEach { hunterNewDist.putIfAbsent(it.key, Utils.dist(testEnemiesMap[it.key.first]!!, testFragmentsMap[it.key.second]!!)) }
 
             val victimPoints = mutableMapOf<String, Float>()
             val excludeMap = mutableMapOf<String, Int>()
-            victims.forEach {
+            testVictimPairs.forEach {
                 val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
                 val firstBound = max((allDist - victimNewDist[it]!!), 0f)
-                val secondBound = max((allDist - victimDist[it]!!), 0f)
+                val secondBound = max((allDist - testVictimDist[it]!!), 0f)
 
                 val prev = victimPoints[it.second] ?: 0f
                 val score = (firstBound*firstBound - secondBound*secondBound)/allDist
@@ -253,15 +331,15 @@ class Strategy2 {
                 victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
             }
             victimPoints.forEach {
-                val count = victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)
+                val count = testVictimsCount[it.key]!! - (excludeMap[it.key] ?: 0)
                 victimPoints[it.key] = if (count == 0) 0f else victimPoints[it.key]!! / count
             }
 
             val hunterPoints = mutableMapOf<String, Float>()
             excludeMap.clear()
-            hunters.forEach {
+            testHunterPairs.forEach {
                 val allDist = enemyMap[it.first]!!.r * 4 + 10
-                val firstBound = max((allDist - hunterDist[it]!!), 0f)
+                val firstBound = max((allDist - testHunterDist[it]!!), 0f)
                 val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
 
                 val prev = hunterPoints[it.second] ?: 0f
@@ -273,7 +351,7 @@ class Strategy2 {
                 hunterPoints[it.second] = prev + score*testFragmentsMap[it.second]!!.m
             }
             hunterPoints.forEach {
-                val count = huntersCount[it.key]!! - (excludeMap[it.key] ?: 0)
+                val count = testHuntersCount[it.key]!! - (excludeMap[it.key] ?: 0)
                 hunterPoints[it.key] = if (count == 0) 0f else hunterPoints[it.key]!! / count
             }
 

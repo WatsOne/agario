@@ -7,3 +7,6 @@ const val COLLISION_POWER = 20.0f
 const val MIN_SPLIT_MASS = 120.0f
 const val SPLIT_START_SPEED = 9.0f
 const val VIS_FACTOR = 4.0f
+const val MIN_SHRINK_MASS = 100f
+const val SHRINK_FACTOR = 0.01f
+const val SHRINK_EVERY_TICK = 50
