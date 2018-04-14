@@ -61,9 +61,14 @@ class Strategy2 {
                 idlePoint = getIdlePoint(data, world, idlePoint)
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
-                idlePoint = null
                 val doEatPosition = doEat(data, world)
-                println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
+                if (!doEatPosition.third) {
+                    idlePoint = getIdlePoint(data, world, idlePoint)
+                    println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+                } else {
+                    idlePoint = null
+                    println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
+                }
             }
 
 //            println(JSONObject(mapOf("X" to world.width / 2, "Y" to world.height / 2)))
@@ -75,76 +80,74 @@ class Strategy2 {
         val player = getLeaderFragment(data.me)
 
         return if (idlePoint == null) {
-            getNewIdleRotatePoint(player, world, PI.toFloat() / 5)
+            getNewIdleRotatePoint(player, world)
         } else {
             val dist = Utils.dist(player.x, player.y, idlePoint.first, idlePoint.second)
-            if (dist < player.r) {
-                val newIdle = getNewIdleRotatePoint(player, world, PI.toFloat() / 5)
-                if (idlePoint.first == newIdle.first && idlePoint.second == newIdle.second) {
-                    getNewIdleRotatePoint(player, world, PI.toFloat())
-                } else {
-                    newIdle
-                }
+            if (dist < player.r * 3) {
+                getNewIdleRotatePoint(player, world)
             } else {
                 idlePoint
             }
         }
     }
 
-    private fun getNewIdleRotatePoint(player: Me, world: World, angle: Float): Pair<Float, Float> {
-        val currentAngle = Utils.getAngle(player.sx, player.sy)
-        return Utils.rotate(player.x, player.y, player.r, 1000f, currentAngle + angle, world, true)
+    private fun getNewIdleRotatePoint(player: Me, world: World): Pair<Float, Float> {
+        val nextPoint = Utils.rotatingPointsForSimulation(player, world, 3)[1]
+        return Pair(nextPoint.first, nextPoint.second)
     }
 
-    private fun doEat(data: Data, world: World): Pair<Float, Float> {
+    private fun doEat(data: Data, world: World): Triple<Float, Float, Boolean> {
 
-        val start = System.currentTimeMillis()
         val total = mutableMapOf<Pair<Float, Float>, Float>()
         var oper = 0
 
-        val me = getLeaderFragment(data.me)
         val testFoods = data.food.map { TestFood(it) }
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
-            val testPlayer = TestPlayer(me)
+        Utils.rotatingPointsForSimulation(data.me[0], world, 15).forEach { d ->
+            val testPlayers = data.me.map { TestPlayer(it) }
             testFoods.forEach { it.eaten = false }
 
-            var eaten = testFoods.size
             var eat = 0
-
             var ppt = 0f
             var tick = 0
 
-            while (Utils.dist(testPlayer.x, testPlayer.y, d.first, d.second) > testPlayer.r && eaten > 0 && tick <= 25) {
+            repeat(20, {
 
-                Utils.applyDirect(d.first, d.second, testPlayer, world)
-                Utils.move(testPlayer, world)
+                testPlayers.forEach { Utils.applyDirect(d.first, d.second, it, world) }
+                for (i in 0 until testPlayers.size ) {
+                    for (j in i + 1 until testPlayers.size) {
+                        Utils.calculateCollision(testPlayers[i], testPlayers[j])
+                    }
+                }
+                testPlayers.forEach { Utils.move(it, world) }
 
-                testFoods.forEach { f ->
-                    if (!f.eaten && Utils.canEat(testPlayer, f)) {
-                        eat++
-                        eaten--
-                        f.eaten = true
-                        testPlayer.m += world.foodMass
-                        testPlayer.r = 2 * sqrt(testPlayer.m)
-                        ppt = eat / tick.toFloat()
+                testPlayers.forEach { p ->
+                    testFoods.forEach { f ->
+                        if (!f.eaten && Utils.canEat(p, f)) {
+                            eat++
+                            f.eaten = true
+                            p.m += world.foodMass
+                            p.r = 2 * sqrt(p.m)
+                            ppt = eat / tick.toFloat()
+                        }
                     }
                 }
 
                 tick++
                 oper++
-            }
+            })
             total[d] = ppt
         }
 
-//        logger.trace { "$tick calc: ${System.currentTimeMillis() - start} ms; oper: $oper. Radius: ${data.me[0].r}" }
 
-        val max = getMaxScore(total)
-        return Pair(max.first, max.second)
+        val maxPoint = total.maxBy { it.value }
+        val maxValue = maxPoint?.value ?: 0f
+        return if (maxValue == 0f) {
+            Triple(0f, 0f, false)
+        } else {
+            Triple(maxPoint?.key?.first ?: 0f, maxPoint?.key?.second ?: 0f, true)
+        }
     }
-
-    private fun getMaxScore(scoreMap: Map<Pair<Float, Float>, Float>): Pair<Float, Float> =
-            scoreMap.maxBy { it.value }?.key ?: Pair(0f, 0f)
 
     private fun getLeaderFragment(me: List<Me>): Me {
         return me.minBy { it.id.toFloat() } ?: me[0]
