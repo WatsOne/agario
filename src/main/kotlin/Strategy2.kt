@@ -243,9 +243,7 @@ class Strategy2 {
                     val nearestEnemy = testEnemiesForMoving.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
                     if (nearestEnemy != null) {
 
-                        hunterNewDist[Pair(nearestEnemy.id!!, f.id!!)] = 0f
-
-                        val otherPairs = hunters.filter { it.second == f.id }
+                        val otherPairs = hunters.filter { it.second == f.id && !(it.second == f.id && it.first == nearestEnemy.id) }
                         otherPairs.forEach {
                             hunterNewDist[it] = Utils.dist(testEnemiesMap[it.first]!!, f)
                         }
@@ -259,10 +257,9 @@ class Strategy2 {
                 testEnemiesForMoving.forEach { e ->
                     val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
                     if (nearestFragment != null) {
-
                         victimNewDist[Pair(nearestFragment.id!!, e.id!!)] = 0f
 
-                        val otherPairs = victims.filter { it.second == e.id }
+                        val otherPairs = victims.filter { it.second == e.id && !(it.second == e.id && it.first == nearestFragment.id) }
                         otherPairs.forEach {
                             victimNewDist[it] = Utils.dist(testFragmentsMap[it.first]!!, e)
                         }
@@ -293,7 +290,7 @@ class Strategy2 {
                 val secondBound = max((allDist - victimDist[it]!!), 0f)
 
                 val prev = victimPoints[it.second] ?: 0f
-                val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+                val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
                 if (score == 0f) {
                     val prevExclude = excludeMap[it.second] ?: 0
                     excludeMap[it.second] = prevExclude + 1
@@ -313,7 +310,7 @@ class Strategy2 {
                 val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
 
                 val prev = hunterPoints[it.second] ?: 0f
-                val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+                val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
                 if (score == 0f) {
                     val prevExclude = excludeMap[it.second] ?: 0
                     excludeMap[it.second] = prevExclude + 1
