@@ -338,7 +338,30 @@ class Strategy2 {
 
     private fun splitSimulation(victimsCountInit: Int, huntersCountInit: Int, enemyVectors: Map<String, Pair<Float, Float>?>, world: World, data: Data): Pair<Boolean, Float> {
 
-        val massOrderedFragments = data.me.sortedByDescending { it.m }
+        //команда сплита стартует после движений, симулируем 1 тик
+        val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
+        val testFragmentsInit = data.me.map { TestPlayer(it) }
+
+        testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+        testFragmentsInit.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+
+        for (i in 0 until testEnemies.size ) {
+            for (j in i + 1 until testEnemies.size) {
+                Utils.calculateCollision(testEnemies[i], testEnemies[j])
+            }
+        }
+
+        for (i in 0 until testFragmentsInit.size ) {
+            for (j in i + 1 until testFragmentsInit.size) {
+                Utils.calculateCollision(testFragmentsInit[i], testFragmentsInit[j])
+            }
+        }
+
+        testFragmentsInit.forEach { Utils.move(it, world) }
+        testEnemies.forEach { Utils.move(it, world) }
+
+        //и вот теперь сплит
+        val massOrderedFragments = testFragmentsInit.sortedByDescending { it.m }
         var maxPotentialFragment = world.maxFragment - data.me.size
 
         val testFragments = mutableListOf<TestPlayer>()
@@ -380,7 +403,6 @@ class Strategy2 {
             hunterDist.minBy { it.value }?.key?.second
         }
 
-        val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
         val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
 
         repeat(5, {
@@ -422,7 +444,7 @@ class Strategy2 {
             val secondBound = max((allDist - victimDist[it]!!), 0f)
 
             val prev = victimPoints[it.second] ?: 0f
-            val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+            val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
             if (score == 0f) {
                 val prevExclude = excludeMap[it.second] ?: 0
                 excludeMap[it.second] = prevExclude + 1
@@ -442,7 +464,7 @@ class Strategy2 {
             val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
 
             val prev = hunterPoints[it.second] ?: 0f
-            val score = (firstBound*firstBound - secondBound*secondBound)/allDist
+            val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
             if (score == 0f) {
                 val prevExclude = excludeMap[it.second] ?: 0
                 excludeMap[it.second] = prevExclude + 1

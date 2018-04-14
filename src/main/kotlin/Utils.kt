@@ -413,7 +413,7 @@ object Utils {
         return false
     }
 
-    fun split(me: Me): List<TestPlayer> {
+    fun split(me: TestPlayer): List<TestPlayer> {
         return mutableListOf(
                 TestPlayer(me.id + me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true),
                 TestPlayer(me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy)
