@@ -1,6 +1,5 @@
 //import mu.KLogging
 import org.json.JSONObject
-import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -16,6 +15,9 @@ class Strategy2 {
         var idlePoint: Pair<Float, Float>? = null
         val prevEnemyPositions = mutableMapOf<String, Pair<Float, Float>?>()
         val enemySpeedVectors = mutableMapOf<String, Pair<Float, Float>?>()
+
+        var prevFood = listOf<String>()
+        var prevFoodPos: Pair<Float, Float>? = null
 
         while (true) {
             val tickData = JSONObject(readLine())
@@ -59,15 +61,27 @@ class Strategy2 {
 
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
+
+                prevFoodPos = null
+
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
-                val doEatPosition = doEat(data, world)
-                if (!doEatPosition.third) {
-                    idlePoint = getIdlePoint(data, world, idlePoint)
-                    println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+                if (data.food.map { it.x.toString() + it.y }.intersect(prevFood).isNotEmpty()) {
+                    println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second)))
                 } else {
-                    idlePoint = null
-                    println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
+
+                    prevFoodPos = null
+
+                    val doEatPosition = doEat(data, world)
+                    if (doEatPosition.third == null) {
+                        idlePoint = getIdlePoint(data, world, idlePoint)
+                        println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
+                    } else {
+                        idlePoint = null
+                        prevFoodPos = Pair(doEatPosition.first, doEatPosition.second)
+                        prevFood = doEatPosition.third!!
+                        println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
+                    }
                 }
             }
 
@@ -96,12 +110,13 @@ class Strategy2 {
         return Pair(nextPoint.first, nextPoint.second)
     }
 
-    private fun doEat(data: Data, world: World): Triple<Float, Float, Boolean> {
+    private fun doEat(data: Data, world: World): Triple<Float, Float, List<String>?> {
 
         val total = mutableMapOf<Pair<Float, Float>, Float>()
         var oper = 0
 
         val testFoods = data.food.map { TestFood(it) }
+        val foodMap = mutableMapOf<Pair<Float, Float>, List<String>>()
 
         Utils.rotatingPointsForSimulation(data.me[0], world, 15).forEach { d ->
             val testPlayers = data.me.map { TestPlayer(it) }
@@ -111,6 +126,7 @@ class Strategy2 {
             var ppt = 0f
             var tick = 0
 
+            val foodList = mutableListOf<String>()
             repeat(20, {
 
                 testPlayers.forEach { Utils.applyDirect(d.first, d.second, it, world) }
@@ -129,6 +145,8 @@ class Strategy2 {
                             p.m += world.foodMass
                             p.r = 2 * sqrt(p.m)
                             ppt = eat / tick.toFloat()
+
+                            foodList.add(f.x.toString() + f.y.toString())
                         }
                     }
                 }
@@ -137,15 +155,17 @@ class Strategy2 {
                 oper++
             })
             total[d] = ppt
+            foodMap[d] = foodList
         }
 
 
         val maxPoint = total.maxBy { it.value }
         val maxValue = maxPoint?.value ?: 0f
+
         return if (maxValue == 0f) {
-            Triple(0f, 0f, false)
+            Triple(0f, 0f, null)
         } else {
-            Triple(maxPoint?.key?.first ?: 0f, maxPoint?.key?.second ?: 0f, true)
+            Triple(maxPoint?.key?.first ?: 0f, maxPoint?.key?.second ?: 0f, foodMap[Pair(maxPoint?.key?.first ?: 0f, maxPoint?.key?.second ?: 0f)])
         }
     }
 
