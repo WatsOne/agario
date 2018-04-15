@@ -203,7 +203,7 @@ class Strategy2 {
 
         Utils.rotatingPointsForSimulation(data.me[0], world, 90).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
-            val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
+            val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
             val testFragmentsMap = testFragments.associateBy({it.id}, {it})
             val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
@@ -339,7 +339,7 @@ class Strategy2 {
     private fun splitSimulation(victimsCountInit: Int, huntersCountInit: Int, enemyVectors: Map<String, Pair<Float, Float>?>, world: World, data: Data): Pair<Boolean, Float> {
 
         //команда сплита стартует после движений, симулируем 1 тик
-        val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.second ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
+        val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
         val testFragmentsInit = data.me.map { TestPlayer(it) }
 
         testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
