@@ -212,6 +212,8 @@ object Utils {
             val maxSpeed = world.speed / sqrt(player.m)
             applyViscosity(player, maxSpeed, world)
         }
+
+        if (player.ttf > 0) player.ttf--
     }
 
     fun applyDirect(x: Float, y: Float, player: TestPlayer, world: World) {

@@ -229,7 +229,7 @@ class Strategy2 {
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 85).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
             val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
