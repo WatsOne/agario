@@ -226,12 +226,6 @@ class Strategy2 {
         victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
         hunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
 
-        val huntersTarget = if (hunters.isEmpty()) {
-            null
-        } else {
-            hunterDist.minBy { it.value }?.key?.second
-        }
-
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
@@ -247,12 +241,7 @@ class Strategy2 {
 
             val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }.toMutableList()
             repeat(5, {
-                if (huntersTarget == null) {
-                    testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
-                } else {
-                    val targetFragment = testFragmentsMap[huntersTarget] ?: testFragments[0]
-                    testEnemiesForMoving.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
-                }
+                testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
                 testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
 
                 for (i in 0 until testEnemiesForMoving.size ) {
