@@ -430,4 +430,54 @@ object Utils {
         player.m -= ((player.m - MIN_SHRINK_MASS) * SHRINK_FACTOR)
         player.r = 2 * sqrt(player.m)
     }
+
+    fun canFuse(player: TestPlayer, fragment: TestPlayer): Boolean {
+        if (player.ttf != 0 || fragment.ttf != 0) return false
+
+        val dist = dist(player, fragment)
+        val nr = player.r + fragment.r
+
+        return dist <= nr
+    }
+
+    fun fusion(player: TestPlayer, fragment: TestPlayer) {
+        val sumMass = player.m + fragment.m
+        val fragInfluence = fragment.m / sumMass
+        val playerInfluence = player.m / sumMass
+
+        player.x = player.x * playerInfluence + fragment.x * fragInfluence
+        player.y = player.y * playerInfluence + fragment.y * fragInfluence
+
+        player.sx = player.sx * playerInfluence + fragment.sx * fragInfluence
+        player.sy = player.sy * playerInfluence + fragment.sy * fragInfluence
+
+        player.speed = sqrt(player.sx * player.sx + player.sy * player.sy)
+        player.angle = atan2(player.sy, player.sx)
+
+        player.m += fragment.m
+    }
+
+    fun updateByMass(player: TestPlayer, world: World) {
+        player.r = 2 * sqrt(player.m)
+        val newSpeed = world.speed / sqrt(player.m)
+        if (player.speed > newSpeed && !player.isFast) {
+            player.speed = newSpeed
+        }
+
+        if (player.x - player.r < 0) {
+            player.x += (player.r - player.x)
+        }
+
+        if (player.y - player.r < 0) {
+            player.y += (player.r - player.y)
+        }
+
+        if (player.x + player.r > world.width) {
+            player.x -= (player.r + player.x - world.width)
+        }
+
+        if (player.y + player.r > world.height) {
+            player.y -= (player.r + player.y - world.height)
+        }
+    }
 }

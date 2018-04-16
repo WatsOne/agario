@@ -240,6 +240,7 @@ class Strategy2 {
             val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
 
             val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }.toMutableList()
+            val notActualHunters = mutableListOf<Pair<String, String>>()
             repeat(5, {
                 testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
                 testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
@@ -297,12 +298,44 @@ class Strategy2 {
                 }
                 huntersToRemove.forEach { testEnemiesForMoving.remove(it) }
 
+                var moreFuse = true
+                val fuseToRemove = mutableListOf<TestPlayer>()
+
+                while (moreFuse) {
+                    moreFuse = false
+                    for (i in 0 until testFragments.size ) {
+                        for (j in i + 1 until testFragments.size) {
+                            if (testFragments[i].isActual && testFragments[j].isActual) {
+                                if (Utils.canFuse(testFragments[i], testFragments[j])) {
+                                    Utils.fusion(testFragments[i], testFragments[j])
+                                    testFragments[j].isActual = false
+                                    fuseToRemove.add(testFragments[j])
+                                    moreFuse = true
+                                }
+                            }
+                        }
+                    }
+
+                    if (moreFuse) {
+                        testFragments.filter { it.isActual }.forEach { Utils.updateByMass(it, world) }
+                    }
+                }
+                if (fuseToRemove.isNotEmpty()) {
+                    fuseToRemove.forEach { testFragments.remove(it) }
+                    val newPotHunters = Utils.getPotentialHuntersTestTest(testFragments, testEnemiesForMoving)
+                    hunters.forEach {
+                        if (!newPotHunters.contains(it)) {
+                            notActualHunters.add(it)
+                        }
+                    }
+                }
+
                 testFragments.filter { it.needUpdateMass }.forEach {
-                    it.r = 2 * sqrt(it.m)
+                    Utils.updateByMass(it, world)
                     it.needUpdateMass = false
                 }
                 testEnemiesForMoving.filter { it.needUpdateMass }.forEach {
-                    it.r = 2 * sqrt(it.m)
+                    Utils.updateByMass(it, world)
                     it.needUpdateMass = false
                 }
             })
@@ -332,7 +365,7 @@ class Strategy2 {
 
             val hunterPoints = mutableMapOf<String, Float>()
             excludeMap.clear()
-            hunters.forEach {
+            hunters.filter { !notActualHunters.contains(it) }.forEach {
                 val allDist = enemyMap[it.first]!!.r * 4 + 10
                 val firstBound = max((allDist - hunterDist[it]!!), 0f)
                 val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
