@@ -116,10 +116,14 @@ object Utils {
     }
 
     fun canEatPotentialForHunting(player: Circle, food: Circle): Boolean {
-        return player.m > food.m * (MASS_EAT_FACTOR + 0.10f)
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.20f)
     }
 
     fun canEatPotentialForHunting(player: TestPlayer, food: Circle): Boolean {
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.20f)
+    }
+
+    fun canEatPotentialForHunting(player: Circle, food: TestPlayer): Boolean {
         return player.m > food.m * (MASS_EAT_FACTOR + 0.20f)
     }
 
@@ -332,12 +336,12 @@ object Utils {
         return res
     }
 
-    fun getPotentialVictimsTestTest(me: List<TestPlayer>, enemies: List<TestPlayer>): List<Pair<String, String>> {
+    fun getPotentialVictimsTestForFuse(me: List<Me>, enemies: List<TestPlayer>): List<Pair<String, String>> {
         val res = mutableListOf<Pair<String, String>>()
         me.forEach { m ->
             enemies.forEach {
-                if (canEatPotential(m, it)) {
-                    res.add(Pair(m.id!!, it.id!!))
+                if (canEatPotentialForHunting(m, it)) {
+                    res.add(Pair(m.id, it.id!!))
                 }
             }
         }
@@ -366,6 +370,20 @@ object Utils {
             me.forEach {
                 if (canEatPotential(e, it)) {
                     res.add(Pair(e.id, it.id))
+                }
+            }
+        }
+
+        return res
+    }
+
+    fun getPotentialHuntersTestForFuse(me: List<Me>, enemies: List<TestPlayer>): List<Pair<String, String>> {
+        val res = mutableListOf<Pair<String, String>>()
+
+        enemies.forEach { e ->
+            me.forEach {
+                if (canEatPotential(e, it)) {
+                    res.add(Pair(e.id!!, it.id))
                 }
             }
         }
