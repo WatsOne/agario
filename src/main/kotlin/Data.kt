@@ -32,7 +32,7 @@ class Data {
                     m = mine.getDouble("M").toFloat(),
                     sx = mine.getDouble("SX").toFloat(),
                     sy = mine.getDouble("SY").toFloat(),
-                    ttf = if (mine.has("TTF")) mine.getInt("TTF") else world.ticks ))
+                    ttf = if (mine.has("TTF")) mine.getInt("TTF") else 0 ))
         }
 
         for (i in 0 until objectArray.length()) {

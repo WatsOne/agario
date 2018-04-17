@@ -1,10 +1,10 @@
-//import mu.KLogging
+import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-//    companion object: KLogging()
+    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -47,13 +47,11 @@ class Strategy2 {
                 if (victimPairs.isNotEmpty() || hunterPairs.isNotEmpty()) {
 
                     val simResult = if (Utils.canSplit(data.me, world)) {
-                        val splitPoints = splitSimulation(victimPairs.size, hunterPairs.size, enemySpeedVectors, world, data)
-                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, splitPoints.first, splitPoints.second)
+                        val splitPoints = splitSimulation(enemySpeedVectors, world, data)
+                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, true, splitPoints)
                     } else {
                         enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, false, 0f)
                     }
-
-
 
                     println(simResult)
 
@@ -70,6 +68,7 @@ class Strategy2 {
                 idlePoint = getIdlePoint(data, world, idlePoint)
 
                 prevFoodPos = null
+                prevFood = listOf()
 
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
@@ -78,6 +77,7 @@ class Strategy2 {
                 } else {
 
                     prevFoodPos = null
+                    prevFood = listOf()
 
                     val doEatPosition = doEat(data, world)
                     if (doEatPosition.third == null) {
@@ -394,7 +394,7 @@ class Strategy2 {
         return JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second, "Split" to (canSplit && (splitPoints > maxPoints.value))))
     }
 
-    private fun splitSimulation(victimsCountInit: Int, huntersCountInit: Int, enemyVectors: Map<String, Pair<Float, Float>?>, world: World, data: Data): Pair<Boolean, Float> {
+    private fun splitSimulation(enemyVectors: Map<String, Pair<Float, Float>?>, world: World, data: Data): Float {
 
         //команда сплита стартует после движений, симулируем 1 тик
         val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }.toMutableList()
@@ -418,6 +418,9 @@ class Strategy2 {
         testFragmentsInit.forEach { Utils.move(it, world) }
         testEnemies.forEach { Utils.move(it, world) }
 
+        //фиксируем охотников
+        val originalHunters = Utils.getPotentialHuntersTestTest(testFragmentsInit, testEnemies)
+
         //и вот теперь сплит
         val massOrderedFragments = testFragmentsInit.sortedByDescending { it.m }
         var maxPotentialFragment = world.maxFragment - data.me.size
@@ -437,12 +440,6 @@ class Strategy2 {
         val victims = Utils.getPotentialVictims(testFragments, data.enemy)
         val hunters = Utils.getPotentialHunters(testFragments, data.enemy)
 
-        if (victimsCountInit > 0) {
-            if (victims.size <= victimsCountInit && hunters.size > huntersCountInit) {
-                return Pair(false, 0f)
-            }
-        }
-
         val victimsCount = victims.groupingBy { it.second }.eachCount()
         val huntersCount = hunters.groupingBy { it.second }.eachCount()
 
@@ -453,7 +450,9 @@ class Strategy2 {
         val hunterDist = mutableMapOf<Pair<String, String>, Float>()
 
         victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
-        hunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
+
+        originalHunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
+        hunters.filter { !originalHunters.contains(it) }.forEach { hunterDist[it] = enemyMap[it.first]!!.r * 4 + 10 }
 
         val huntersTarget = if (hunters.isEmpty()) {
             null
@@ -570,6 +569,6 @@ class Strategy2 {
         val allVictimPoints = victimPoints.values.sum()
         val allHunterPoints = hunterPoints.values.sum()
 
-        return Pair(true, allVictimPoints + allHunterPoints)
+        return allVictimPoints + allHunterPoints
     }
 }
