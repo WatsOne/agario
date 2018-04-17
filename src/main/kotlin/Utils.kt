@@ -1,5 +1,7 @@
 import kotlin.math.*
 
+
+
 object Utils {
 
     fun rotate(x: Float, y: Float, r: Float, length: Float, angle: Float, world: World, useCut: Boolean): Pair<Float, Float> {
@@ -479,5 +481,18 @@ object Utils {
         if (player.y + player.r > world.height) {
             player.y -= (player.r + player.y - world.height)
         }
+    }
+
+    fun getCentorid(me: List<Circle>): Pair<Float, Float> {
+        var x = 0.0f
+        var y = 0.0f
+        me.forEach {
+            x += it.x
+            y += it.y
+        }
+        x /= me.size
+        y /= me.size
+
+        return Pair(x, y)
     }
 }

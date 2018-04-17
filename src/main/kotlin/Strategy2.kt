@@ -1,10 +1,10 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -73,6 +73,7 @@ class Strategy2 {
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
                 if (data.food.map { it.x.toString() + it.y }.intersect(prevFood).isNotEmpty()) {
+
                     println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second, "Split" to split)))
                 } else {
 
@@ -82,18 +83,16 @@ class Strategy2 {
                     val doEatPosition = doEat(data, world)
                     if (doEatPosition.third == null) {
                         idlePoint = getIdlePoint(data, world, idlePoint)
+
                         println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second, "Split" to split)))
                     } else {
                         idlePoint = null
-                        prevFoodPos = Pair(doEatPosition.first, doEatPosition.second)
-                        prevFood = doEatPosition.third!!
-
                         if (!split) {
+                            prevFoodPos = Pair(doEatPosition.first, doEatPosition.second)
+                            prevFood = doEatPosition.third!!
                             println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
                         } else {
                             println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second, "Split" to true)))
-                            prevFood = listOf()
-                            prevFoodPos = null
                         }
                     }
                 }
@@ -229,7 +228,7 @@ class Strategy2 {
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 60).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 60).plus(Utils.getCentorid(data.me)).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
             val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
