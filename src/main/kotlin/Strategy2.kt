@@ -119,7 +119,7 @@ class Strategy2 {
     }
 
     private fun getNewIdleRotatePoint(player: Me, world: World): Pair<Float, Float> {
-        val nextPoint = Utils.rotatingPointsForSimulation(player, world, 3)[1]
+        val nextPoint = Utils.rotatingPointsForSimulation(player, world, 9)[1]
         return Pair(nextPoint.first, nextPoint.second)
     }
 
