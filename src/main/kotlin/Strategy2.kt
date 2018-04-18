@@ -240,7 +240,7 @@ class Strategy2 {
 
             val fakeHunters = mutableListOf<Enemy>()
 
-            targetFragments.mapNotNull { fragmentMap[it] }.forEach {
+            targetFragments.take(3).mapNotNull { fragmentMap[it] }.forEach {
                 val newMass = it.m * MASS_EAT_FACTOR + 1
                 val newR = 2 * sqrt(newMass)
 
@@ -275,7 +275,7 @@ class Strategy2 {
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 60).plus(Utils.getCentorid(data.me)).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 40).plus(Utils.getCentorid(data.me)).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
             val testEnemies = if (useFusionHunters) {
                 testEnemiesFusion.map { it.copy() }.toList()
@@ -291,7 +291,7 @@ class Strategy2 {
 
             val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }.toMutableList()
             val notActualHunters = mutableListOf<Pair<String, String>>()
-            repeat(5, {
+            repeat(7, {
                 testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
                 testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
 
