@@ -187,53 +187,16 @@ class Strategy2 {
     }
 
     private fun enemySimulation(victimsP: List<Pair<String, String>>, huntersP: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data, canSplit: Boolean, splitPoints: Float):  JSONObject {
-        //если нас одна штука, то представим что всё вокруг нас зафъюзилось, от греха подальше
-        var useFusionHunters = false
-
-        lateinit var fuseHunters: List<Pair<String, String>>
-        lateinit var fuseVictims: List<Pair<String, String>>
-        lateinit var testEnemiesFusion: MutableList<TestPlayer>
-
-        if (data.me.size == 1) {
-            var moreFuse = true
-            testEnemiesFusion = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f, 0) }.toMutableList()
-
-            while (moreFuse) {
-                moreFuse = false
-                for (i in 0 until testEnemiesFusion.size ) {
-                    for (j in i + 1 until testEnemiesFusion.size) {
-                        if (testEnemiesFusion[i].isActual && testEnemiesFusion[j].isActual) {
-                            if (Utils.canFuse(testEnemiesFusion[i], testEnemiesFusion[j])) {
-                                Utils.fusion(testEnemiesFusion[i], testEnemiesFusion[j])
-                                testEnemiesFusion[j].isActual = false
-                                moreFuse = true
-                            }
-                        }
-                    }
-                }
-
-                if (moreFuse) {
-                    testEnemiesFusion.filter { it.isActual }.forEach { Utils.updateByMass(it, world) }
-                }
-            }
-
-            testEnemiesFusion.filter { !it.isActual }.forEach { testEnemiesFusion.remove(it) }
-
-            //проверяем не появилось ли новых охотников
-            fuseHunters = Utils.getPotentialHuntersTestForFuse(data.me, testEnemiesFusion)
-            fuseVictims = Utils.getPotentialVictimsTestForFuse(data.me, testEnemiesFusion)
-            useFusionHunters = fuseHunters.size > huntersP.size
-        }
 
         val fragmentMap = data.me.associateBy({ it.id }, { it })
         var enemyMap = data.enemy.associateBy({ it.id }, { it })
 
-        var hunters = if (useFusionHunters) fuseHunters else huntersP
-        val victims = if (useFusionHunters) fuseVictims else victimsP
+        var hunters = huntersP
+        val victims = victimsP
 
         val enemies = data.enemy
 
-        if (hunters.isNotEmpty() && !useFusionHunters) {
+        if (hunters.isNotEmpty()) {
             val targetFragments = hunters.map { it.second }.distinct()
             val w = world.width
             val h = world.height
@@ -263,25 +226,15 @@ class Strategy2 {
         val victimDist = mutableMapOf<Pair<String, String>, Float>()
         val hunterDist = mutableMapOf<Pair<String, String>, Float>()
 
-        if (useFusionHunters) {
-            val fuseEnemyMap = testEnemiesFusion.associateBy({ it.id }, { it })
-            victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, fuseEnemyMap[it.second]!!) }
-            hunters.forEach { hunterDist[it] = Utils.dist(fuseEnemyMap[it.first]!!, fragmentMap[it.second]!!) }
-        } else {
-            victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
-            hunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
-        }
+        victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
+        hunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
 
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 40).plus(Utils.getCentorid(data.me)).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 45).plus(Utils.getCentorid(data.me)).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
-            val testEnemies = if (useFusionHunters) {
-                testEnemiesFusion.map { it.copy() }.toList()
-            } else {
-                enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
-            }
+            val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
             val testFragmentsMap = testFragments.associateBy({it.id}, {it})
             val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
@@ -291,7 +244,7 @@ class Strategy2 {
 
             val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }.toMutableList()
             val notActualHunters = mutableListOf<Pair<String, String>>()
-            repeat(7, {
+            repeat(5, {
                 testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
                 testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
 
