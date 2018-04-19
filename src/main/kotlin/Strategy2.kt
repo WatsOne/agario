@@ -208,11 +208,11 @@ class Strategy2 {
                 val newR = 2 * sqrt(newMass)
 
                 //слева и справа
-                fakeHunters.add(Enemy("f00" + it.id, 0f, it.y, newR, newMass))
-                fakeHunters.add(Enemy("f01" + it.id, w.toFloat(), it.y, newR, newMass))
+                fakeHunters.add(Enemy("f00" + it.id, newR, it.y, newR, newMass))
+                fakeHunters.add(Enemy("f01" + it.id, w.toFloat() - newR, it.y, newR, newMass))
                 //снизу и сверху
-                fakeHunters.add(Enemy("f02" + it.id, it.x, 0f, newR, newMass))
-                fakeHunters.add(Enemy("f03" + it.id, it.x, h.toFloat(), newR, newMass))
+                fakeHunters.add(Enemy("f02" + it.id, it.x, newR, newR, newMass))
+                fakeHunters.add(Enemy("f03" + it.id, it.x, h.toFloat() - newR, newR, newMass))
             }
 
             enemies.addAll(fakeHunters)
@@ -232,7 +232,7 @@ class Strategy2 {
         val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
         val points = mutableMapOf<Pair<Float, Float>, Float>()
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 45).plus(Utils.getCentorid(data.me)).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 45).forEach { d ->
             val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
             val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
 
