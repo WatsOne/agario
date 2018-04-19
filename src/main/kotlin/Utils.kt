@@ -435,6 +435,14 @@ object Utils {
         return false
     }
 
+    fun canSplit2(fragments: List<TestPlayer>, world: World): Boolean {
+        if (fragments.size <= world.maxFragment) {
+            return fragments.any { it.m > MIN_SPLIT_MASS }
+        }
+
+        return false
+    }
+
     fun split(me: TestPlayer): List<TestPlayer> {
         return mutableListOf(
                 TestPlayer(me.id + me.id, me.x, me.y, 2 * sqrt(me.m / 2), me.m / 2, me.sx, me.sy, SPLIT_START_SPEED, Utils.getAngle(me.sx, me.sy), true),

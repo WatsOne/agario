@@ -191,348 +191,73 @@ class Strategy2 {
         val testFragmentsInitial = data.me.map { TestPlayer(it) }
         val testEnemiesInitial = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }.toMutableList()
 
-        val fakeEnemies = mutableListOf<TestPlayer>()
-//        if (thereAreHunters(testFragmentsInitial, testFragmentsInitial)) {
-//            val w = world.width.toFloat()
-//            val h = world.height.toFloat()
-//
-//            val r = 495f
-//            val m = 61256.25f
-//
-//            fakeEnemies.add(TestPlayer(id = "f00", x = 0f, y = 0f, r = r, m = m, sx = 0f, sy = 0f))
-//            fakeEnemies.add(TestPlayer(id = "f01", x = w, y = 0f, r = r, m = m, sx = 0f, sy = 0f))
-//            fakeEnemies.add(TestPlayer(id = "f02", x = w, y = h, r = r, m = m, sx = 0f, sy = 0f))
-//            fakeEnemies.add(TestPlayer(id = "f03", x = 0f, y = h, r = r, m = m, sx = 0f, sy = 0f))
-//        }
-
         val points = mutableMapOf<Pair<Float, Float>, Float>()
+        val simPoints = mutableMapOf<Pair<Float, Float>, Float>()
+        val initialSimulationPoints = splitSimulation(testFragmentsInitial.map { it.copy() }.toMutableList(), testEnemiesInitial.map { it.copy() }.toMutableList(), world)
 
         Utils.rotatingPointsForSimulation(data.me[0], world, 40).forEach { d ->
             val testFragments = testFragmentsInitial.map { it.copy() }.toMutableList()
             val testEnemies = testEnemiesInitial.map { it.copy() }.toMutableList()
+            val stepSimPoints = mutableListOf<Float>()
 
             var eatScore = 0f
 
-            for (step in 1..5) {
-
-                testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
-                testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
-
-                for (i in 0 until testEnemies.size ) {
-                    for (j in i + 1 until testEnemies.size) {
-                        Utils.calculateCollision(testEnemies[i], testEnemies[j])
-                    }
-                }
-
-                for (i in 0 until testFragments.size ) {
-                    for (j in i + 1 until testFragments.size) {
-                        Utils.calculateCollision(testFragments[i], testFragments[j])
-                    }
-                }
-
-                testFragments.forEach { Utils.move(it, world) }
-                testEnemies.forEach { Utils.move(it, world) }
-
-                if (tick % SHRINK_EVERY_TICK == 0) {
-                    testFragments.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
-                    testEnemies.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
-                }
-
-                val fragmentsToRemove = mutableListOf<TestPlayer>()
-                testFragments.forEach { f ->
-                    val nearestEnemy = testEnemies.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
-                    if (nearestEnemy != null) {
-
-                        f.x = nearestEnemy.x
-                        f.y = nearestEnemy.y
-
-                        nearestEnemy.m += f.m
-                        nearestEnemy.needUpdateMass = true
-
-                        eatScore += getScoreForEatFragment(f, testEnemies)
-
-                        fragmentsToRemove.add(f)
-                    }
-                }
-                fragmentsToRemove.forEach { testFragments.remove(it) }
-
-                val huntersToRemove = mutableListOf<TestPlayer>()
-                testEnemies.forEach { e ->
-                    val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
-                    if (nearestFragment != null) {
-
-                        e.x = nearestFragment.x
-                        e.y = nearestFragment.y
-
-                        nearestFragment.m += e.m
-                        nearestFragment.needUpdateMass = true
-
-                        eatScore += getScoreForEatEnemy(e, testFragments)
-
-                        huntersToRemove.add(e)
-                    }
-                }
-                huntersToRemove.forEach { testEnemies.remove(it) }
-
-                var moreFuse = true
-
-                while (moreFuse) {
-                    moreFuse = false
-                    for (i in 0 until testFragments.size ) {
-                        for (j in i + 1 until testFragments.size) {
-                            if (testFragments[i].isActual && testFragments[j].isActual) {
-                                if (Utils.canFuse(testFragments[i], testFragments[j])) {
-                                    Utils.fusion(testFragments[i], testFragments[j])
-                                    testFragments[j].isActual = false
-                                    moreFuse = true
-                                }
-                            }
-                        }
-                    }
-
-                    if (moreFuse) {
-                        testFragments.filter { it.isActual }.forEach { Utils.updateByMass(it, world) }
-                    }
-                }
-
-                testEnemies.filter { !it.isActual }.forEach { testEnemies.remove(it) }
-
-                testFragments.filter { it.needUpdateMass }.forEach {
-                    Utils.updateByMass(it, world)
-                    it.needUpdateMass = false
-                }
-                testEnemies.filter { it.needUpdateMass }.forEach {
-                    Utils.updateByMass(it, world)
-                    it.needUpdateMass = false
-                }
+            for (i in 1..5) {
+                eatScore += stepSimulation(testFragments, testEnemies, d, world)
+                stepSimPoints.add(eatScore + splitSimulation(testFragments.map { it.copy() }.toMutableList(), testEnemies.map { it.copy() }.toMutableList(), world))
             }
 
-            points[d] = getScore(testFragments, testEnemies.plus(fakeEnemies)) + eatScore
+            points[d] = getScore(testFragments, testEnemies) + eatScore
+            simPoints[d] = stepSimPoints.max() ?: Float.NEGATIVE_INFINITY
         }
 
         val maxPoints = points.maxBy { it.value }!!
-        return JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second))
+        val maxSimPoint = simPoints.maxBy { it.value }!!
+
+        logger.trace { "$tick: max: $maxPoints; split: $maxSimPoint; init: $initialSimulationPoints" }
+
+        return if (initialSimulationPoints > maxPoints.value && initialSimulationPoints > maxSimPoint.value) {
+            JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second, "Split" to true))
+        } else if (maxSimPoint.value > maxPoints.value) {
+            JSONObject(mapOf("X" to maxSimPoint.key.first, "Y" to maxSimPoint.key.second))
+        } else {
+            JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second))
+        }
     }
 
-    private fun enemySimulation(victimsP: List<Pair<String, String>>, huntersP: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data, canSplit: Boolean, splitPoints: Float):  JSONObject {
-
-        val fragmentMap = data.me.associateBy({ it.id }, { it })
-        var enemyMap = data.enemy.associateBy({ it.id }, { it })
-
-        var hunters = huntersP
-        val victims = victimsP
-
-        val enemies = data.enemy
-
-        if (hunters.isNotEmpty()) {
-            val targetFragments = hunters.map { it.second }.distinct()
-            val w = world.width
-            val h = world.height
-
-            val fakeHunters = mutableListOf<Enemy>()
-
-            targetFragments.take(3).mapNotNull { fragmentMap[it] }.forEach {
-                val newMass = it.m * MASS_EAT_FACTOR + 1
-                val newR = 2 * sqrt(newMass)
-
-                //слева и справа
-                fakeHunters.add(Enemy("f00" + it.id, newR, it.y, newR, newMass))
-                fakeHunters.add(Enemy("f01" + it.id, w.toFloat() - newR, it.y, newR, newMass))
-                //снизу и сверху
-                fakeHunters.add(Enemy("f02" + it.id, it.x, newR, newR, newMass))
-                fakeHunters.add(Enemy("f03" + it.id, it.x, h.toFloat() - newR, newR, newMass))
-            }
-
-            enemies.addAll(fakeHunters)
-            hunters = Utils.getPotentialHuntersTest(data.me, enemies)
-            enemyMap = enemies.associateBy({ it.id }, { it })
+    private fun splitSimulation(testFragments: MutableList<TestPlayer>, testEnemies: MutableList<TestPlayer>, world: World): Float {
+        if (!Utils.canSplit2(testFragments, world)) {
+            return Float.NEGATIVE_INFINITY
         }
 
-        val victimsCount = victims.groupingBy { it.second }.eachCount()
-        val huntersCount = hunters.groupingBy { it.second }.eachCount()
+        var eatScore = 0f
+        eatScore += stepSimulation(testFragments, testEnemies, null, world)
 
-        val victimDist = mutableMapOf<Pair<String, String>, Float>()
-        val hunterDist = mutableMapOf<Pair<String, String>, Float>()
+        var maxPotentialFragment = world.maxFragment - testFragments.size
+        val massOrderedFragments = testFragments.sortedByDescending { it.m }
 
-        victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
-        hunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
-
-        val visionFactor = if (data.me.size == 1) 1f else sqrt(data.me.size.toFloat())
-        val points = mutableMapOf<Pair<Float, Float>, Float>()
-
-        Utils.rotatingPointsForSimulation(data.me[0], world, 45).forEach { d ->
-            val testFragments = data.me.map { TestPlayer(it) }.toMutableList()
-            val testEnemies = enemies.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }
-
-            val testFragmentsMap = testFragments.associateBy({it.id}, {it})
-            val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
-
-            val victimNewDist = mutableMapOf<Pair<String, String>, Float>()
-            val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
-
-            val testEnemiesForMoving = testEnemies.filter { it.id == null || !it.id.startsWith("f") }.toMutableList()
-            val notActualHunters = mutableListOf<Pair<String, String>>()
-            repeat(5, {
-                testEnemiesForMoving.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
-                testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
-
-                for (i in 0 until testEnemiesForMoving.size ) {
-                    for (j in i + 1 until testEnemiesForMoving.size) {
-                        Utils.calculateCollision(testEnemiesForMoving[i], testEnemiesForMoving[j])
-                    }
-                }
-
-                for (i in 0 until testFragments.size ) {
-                    for (j in i + 1 until testFragments.size) {
-                        Utils.calculateCollision(testFragments[i], testFragments[j])
-                    }
-                }
-
-                testFragments.forEach { Utils.move(it, world) }
-                testEnemiesForMoving.forEach { Utils.move(it, world) }
-
-                if (tick % SHRINK_EVERY_TICK == 0) {
-                    testFragments.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
-                    testEnemiesForMoving.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
-                }
-
-                val fragmentsToRemove = mutableListOf<TestPlayer>()
-                testFragments.forEach { f ->
-                    val nearestEnemy = testEnemiesForMoving.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
-                    if (nearestEnemy != null) {
-
-                        hunterNewDist[Pair(nearestEnemy.id!!, f.id!!)] = 0f
-
-                        val otherPairs = hunters.filter { it.second == f.id && !(it.second == f.id && it.first == nearestEnemy.id) }
-                        otherPairs.forEach {
-                            hunterNewDist[it] = Utils.dist(testEnemiesMap[it.first]!!, f)
-                        }
-
-                        fragmentsToRemove.add(f)
-                    }
-                }
-                fragmentsToRemove.forEach { testFragments.remove(it) }
-
-                val huntersToRemove = mutableListOf<TestPlayer>()
-                testEnemiesForMoving.forEach { e ->
-                    val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
-                    if (nearestFragment != null) {
-                        victimNewDist[Pair(nearestFragment.id!!, e.id!!)] = 0f
-
-                        val otherPairs = victims.filter { it.second == e.id && !(it.second == e.id && it.first == nearestFragment.id) }
-                        otherPairs.forEach {
-                            victimNewDist[it] = Utils.dist(testFragmentsMap[it.first]!!, e)
-                        }
-
-                        huntersToRemove.add(e)
-                    }
-                }
-                huntersToRemove.forEach { testEnemiesForMoving.remove(it) }
-
-                var moreFuse = true
-                val fuseToRemove = mutableListOf<TestPlayer>()
-
-                while (moreFuse) {
-                    moreFuse = false
-                    for (i in 0 until testFragments.size ) {
-                        for (j in i + 1 until testFragments.size) {
-                            if (testFragments[i].isActual && testFragments[j].isActual) {
-                                if (Utils.canFuse(testFragments[i], testFragments[j])) {
-                                    Utils.fusion(testFragments[i], testFragments[j])
-                                    testFragments[j].isActual = false
-                                    fuseToRemove.add(testFragments[j])
-                                    moreFuse = true
-                                }
-                            }
-                        }
-                    }
-
-                    if (moreFuse) {
-                        testFragments.filter { it.isActual }.forEach { Utils.updateByMass(it, world) }
-                    }
-                }
-                if (fuseToRemove.isNotEmpty()) {
-                    fuseToRemove.forEach { testFragments.remove(it) }
-                    val newPotHunters = Utils.getPotentialHuntersTestTest(testFragments, testEnemiesForMoving)
-                    hunters.forEach {
-                        if (!newPotHunters.contains(it)) {
-                            notActualHunters.add(it)
-                        }
-                    }
-                }
-
-                testFragments.filter { it.needUpdateMass }.forEach {
-                    Utils.updateByMass(it, world)
-                    it.needUpdateMass = false
-                }
-                testEnemiesForMoving.filter { it.needUpdateMass }.forEach {
-                    Utils.updateByMass(it, world)
-                    it.needUpdateMass = false
-                }
-            })
-
-            victimDist.forEach { victimNewDist.putIfAbsent(it.key, Utils.dist(testFragmentsMap[it.key.first]!!, testEnemiesMap[it.key.second]!!)) }
-            hunterDist.forEach { hunterNewDist.putIfAbsent(it.key, Utils.dist(testEnemiesMap[it.key.first]!!, testFragmentsMap[it.key.second]!!)) }
-
-            val victimPoints = mutableMapOf<String, Float>()
-            val excludeMap = mutableMapOf<String, Int>()
-            victims.forEach {
-                val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
-                val firstBound = max((allDist - victimNewDist[it]!!), 0f)
-                val secondBound = max((allDist - victimDist[it]!!), 0f)
-
-                val prev = victimPoints[it.second] ?: 0f
-                val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
-                if (score == 0f) {
-                    val prevExclude = excludeMap[it.second] ?: 0
-                    excludeMap[it.second] = prevExclude + 1
-                }
-                victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
+        val splittedFragment = mutableListOf<TestPlayer>()
+        massOrderedFragments.forEach {
+            if (it.m > MIN_SPLIT_MASS && maxPotentialFragment <= world.maxFragment) {
+                splittedFragment.addAll(Utils.split(it))
+                maxPotentialFragment++
+            } else {
+                splittedFragment.add(it)
             }
-            victimPoints.forEach {
-                val count = victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)
-                victimPoints[it.key] = if (count == 0) 0f else victimPoints[it.key]!! / count
-            }
-
-            val hunterPoints = mutableMapOf<String, Float>()
-            excludeMap.clear()
-            hunters.filter { !notActualHunters.contains(it) }.forEach {
-                val allDist = enemyMap[it.first]!!.r * 4 + 10
-                val firstBound = max((allDist - hunterDist[it]!!), 0f)
-                val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
-
-                val prev = hunterPoints[it.second] ?: 0f
-                val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
-                if (score == 0f) {
-                    val prevExclude = excludeMap[it.second] ?: 0
-                    excludeMap[it.second] = prevExclude + 1
-                }
-                hunterPoints[it.second] = prev + score*testFragmentsMap[it.second]!!.m
-            }
-            hunterPoints.forEach {
-                val count = huntersCount[it.key]!! - (excludeMap[it.key] ?: 0)
-                hunterPoints[it.key] = if (count == 0) 0f else hunterPoints[it.key]!! / count
-            }
-
-            val allVictimPoints = victimPoints.values.sum()
-            val allHunterPoints = hunterPoints.values.sum()
-
-            points[d] = allVictimPoints + allHunterPoints
         }
 
-        val maxPoints = points.maxBy { it.value }!!
+        repeat(4, {
+            eatScore += stepSimulation(splittedFragment, testEnemies, null, world)
+        })
 
-        return JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second, "Split" to (canSplit && (splitPoints > maxPoints.value))))
+        return getScore(splittedFragment, testEnemies) + eatScore
     }
 
-    private fun splitSimulation(enemyVectors: Map<String, Pair<Float, Float>?>, world: World, data: Data): Float {
-
-        //команда сплита стартует после движений, симулируем 1 тик
-        val testEnemies = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }.toMutableList()
-        val testFragmentsInit = data.me.map { TestPlayer(it) }
+    private fun stepSimulation(testFragments: MutableList<TestPlayer>, testEnemies: MutableList<TestPlayer>, dir: Pair<Float, Float>?, world: World): Float {
+        var eatScore = 0f
 
         testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
-        testFragmentsInit.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+        testFragments.forEach { Utils.applyDirect(dir?.first ?: (it.x + it.sx), dir?.second ?: (it.y + it.sy), it, world) }
 
         for (i in 0 until testEnemies.size ) {
             for (j in i + 1 until testEnemies.size) {
@@ -540,167 +265,89 @@ class Strategy2 {
             }
         }
 
-        for (i in 0 until testFragmentsInit.size ) {
-            for (j in i + 1 until testFragmentsInit.size) {
-                Utils.calculateCollision(testFragmentsInit[i], testFragmentsInit[j])
+        for (i in 0 until testFragments.size ) {
+            for (j in i + 1 until testFragments.size) {
+                Utils.calculateCollision(testFragments[i], testFragments[j])
             }
         }
 
-        testFragmentsInit.forEach { Utils.move(it, world) }
+        testFragments.forEach { Utils.move(it, world) }
         testEnemies.forEach { Utils.move(it, world) }
 
-        //фиксируем охотников
-        val originalHunters = Utils.getPotentialHuntersTestTest(testFragmentsInit, testEnemies)
-
-        //и вот теперь сплит
-        val massOrderedFragments = testFragmentsInit.sortedByDescending { it.m }
-        var maxPotentialFragment = world.maxFragment - data.me.size
-
-        val testFragments = mutableListOf<TestPlayer>()
-        massOrderedFragments.forEach {
-            if (it.m > MIN_SPLIT_MASS && maxPotentialFragment <= world.maxFragment) {
-                testFragments.addAll(Utils.split(it))
-                maxPotentialFragment++
-            } else {
-                testFragments.add(TestPlayer(it))
-            }
+        if (tick % SHRINK_EVERY_TICK == 0) {
+            testFragments.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
+            testEnemies.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
         }
 
-        val visionFactor = if (testFragments.size == 1) 1f else sqrt(testFragments.size.toFloat())
+        val fragmentsToRemove = mutableListOf<TestPlayer>()
+        testFragments.forEach { f ->
+            val nearestEnemy = testEnemies.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
+            if (nearestEnemy != null) {
 
-        val victims = Utils.getPotentialVictims(testFragments, data.enemy)
-        val hunters = Utils.getPotentialHunters(testFragments, data.enemy)
+                f.x = nearestEnemy.x
+                f.y = nearestEnemy.y
 
-        val victimsCount = victims.groupingBy { it.second }.eachCount()
-        val huntersCount = hunters.groupingBy { it.second }.eachCount()
+                nearestEnemy.m += f.m
+                nearestEnemy.needUpdateMass = true
 
-        val fragmentMap = testFragments.associateBy({ it.id }, { it })
-        val enemyMap = data.enemy.associateBy({ it.id }, { it })
+                eatScore += getScoreForEatFragment(f, testEnemies)
 
-        val victimDist = mutableMapOf<Pair<String, String>, Float>()
-        val hunterDist = mutableMapOf<Pair<String, String>, Float>()
-
-        victims.forEach { victimDist[it] = Utils.dist(fragmentMap[it.first]!!, enemyMap[it.second]!!) }
-
-        originalHunters.forEach { hunterDist[it] = Utils.dist(enemyMap[it.first]!!, fragmentMap[it.second]!!) }
-        hunters.filter { !originalHunters.contains(it) }.forEach { hunterDist[it] = enemyMap[it.first]!!.r * 4 + 10 }
-
-        val huntersTarget = if (hunters.isEmpty()) {
-            null
-        } else {
-            hunterDist.minBy { it.value }?.key?.second
+                fragmentsToRemove.add(f)
+            }
         }
+        fragmentsToRemove.forEach { testFragments.remove(it) }
 
-        val testEnemiesMap = testEnemies.associateBy({it.id}, {it})
+        val huntersToRemove = mutableListOf<TestPlayer>()
+        testEnemies.forEach { e ->
+            val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
+            if (nearestFragment != null) {
 
-        val victimNewDist = mutableMapOf<Pair<String, String>, Float>()
-        val hunterNewDist = mutableMapOf<Pair<String, String>, Float>()
+                e.x = nearestFragment.x
+                e.y = nearestFragment.y
 
-        repeat(5, {
-            if (huntersTarget == null) {
-                testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
-            } else {
-                val targetFragment = fragmentMap[huntersTarget] ?: testFragments[0]
-                testEnemies.forEach { Utils.applyDirect(targetFragment.x, targetFragment.y, it, world) }
+                nearestFragment.m += e.m
+                nearestFragment.needUpdateMass = true
+
+                eatScore += getScoreForEatEnemy(e, testFragments)
+
+                huntersToRemove.add(e)
             }
-            testFragments.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+        }
+        huntersToRemove.forEach { testEnemies.remove(it) }
 
-            for (i in 0 until testEnemies.size ) {
-                for (j in i + 1 until testEnemies.size) {
-                    Utils.calculateCollision(testEnemies[i], testEnemies[j])
-                }
-            }
+        var moreFuse = true
 
+        while (moreFuse) {
+            moreFuse = false
             for (i in 0 until testFragments.size ) {
                 for (j in i + 1 until testFragments.size) {
-                    Utils.calculateCollision(testFragments[i], testFragments[j])
-                }
-            }
-
-            testFragments.forEach { Utils.move(it, world) }
-            testEnemies.forEach { Utils.move(it, world) }
-
-            val fragmentsToRemove = mutableListOf<TestPlayer>()
-            testFragments.forEach { f ->
-                val nearestEnemy = testEnemies.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
-                if (nearestEnemy != null) {
-
-                    hunterNewDist[Pair(nearestEnemy.id!!, f.id!!)] = 0f
-
-                    val otherPairs = hunters.filter { it.second == f.id && !(it.second == f.id && it.first == nearestEnemy.id) }
-                    otherPairs.forEach {
-                        hunterNewDist[it] = Utils.dist(testEnemiesMap[it.first]!!, f)
+                    if (testFragments[i].isActual && testFragments[j].isActual) {
+                        if (Utils.canFuse(testFragments[i], testFragments[j])) {
+                            Utils.fusion(testFragments[i], testFragments[j])
+                            testFragments[j].isActual = false
+                            moreFuse = true
+                        }
                     }
-
-                    fragmentsToRemove.add(f)
                 }
             }
-            fragmentsToRemove.forEach { testFragments.remove(it) }
 
-            val huntersToRemove = mutableListOf<TestPlayer>()
-            testEnemies.forEach { e ->
-                val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
-                if (nearestFragment != null) {
-                    victimNewDist[Pair(nearestFragment.id!!, e.id!!)] = 0f
-
-                    val otherPairs = victims.filter { it.second == e.id && !(it.second == e.id && it.first == nearestFragment.id) }
-                    otherPairs.forEach {
-                        victimNewDist[it] = Utils.dist(fragmentMap[it.first]!!, e)
-                    }
-
-                    huntersToRemove.add(e)
-                }
+            if (moreFuse) {
+                testFragments.filter { it.isActual }.forEach { Utils.updateByMass(it, world) }
             }
-            huntersToRemove.forEach { testEnemies.remove(it) }
-        })
-
-        victimDist.forEach { victimNewDist[it.key] = Utils.dist(fragmentMap[it.key.first]!!, testEnemiesMap[it.key.second]!!) }
-        hunterDist.forEach { hunterNewDist[it.key] = Utils.dist(testEnemiesMap[it.key.first]!!, fragmentMap[it.key.second]!!) }
-
-        val victimPoints = mutableMapOf<String, Float>()
-        val excludeMap = mutableMapOf<String, Int>()
-        victims.forEach {
-            val allDist = fragmentMap[it.first]!!.r * 4 * visionFactor + 10
-            val firstBound = max((allDist - victimNewDist[it]!!), 0f)
-            val secondBound = max((allDist - victimDist[it]!!), 0f)
-
-            val prev = victimPoints[it.second] ?: 0f
-            val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
-            if (score == 0f) {
-                val prevExclude = excludeMap[it.second] ?: 0
-                excludeMap[it.second] = prevExclude + 1
-            }
-            victimPoints[it.second] = prev + score*testEnemiesMap[it.second]!!.m
-        }
-        victimPoints.forEach {
-            val count = victimsCount[it.key]!! - (excludeMap[it.key] ?: 0)
-            victimPoints[it.key] = if (count == 0) 0f else victimPoints[it.key]!! / count
         }
 
-        val hunterPoints = mutableMapOf<String, Float>()
-        excludeMap.clear()
-        hunters.forEach {
-            val allDist = enemyMap[it.first]!!.r * 4 + 10
-            val firstBound = max((allDist - hunterDist[it]!!), 0f)
-            val secondBound = max((allDist - hunterNewDist[it]!!), 0f)
+        testEnemies.filter { !it.isActual }.forEach { testEnemies.remove(it) }
 
-            val prev = hunterPoints[it.second] ?: 0f
-            val score = (firstBound*firstBound - secondBound*secondBound)/allDist*(100/allDist)
-            if (score == 0f) {
-                val prevExclude = excludeMap[it.second] ?: 0
-                excludeMap[it.second] = prevExclude + 1
-            }
-            hunterPoints[it.second] = prev + score*fragmentMap[it.second]!!.m
+        testFragments.filter { it.needUpdateMass }.forEach {
+            Utils.updateByMass(it, world)
+            it.needUpdateMass = false
         }
-        hunterPoints.forEach {
-            val count = huntersCount[it.key]!! - (excludeMap[it.key] ?: 0)
-            hunterPoints[it.key] = if (count == 0) 0f else hunterPoints[it.key]!! / count
+        testEnemies.filter { it.needUpdateMass }.forEach {
+            Utils.updateByMass(it, world)
+            it.needUpdateMass = false
         }
 
-        val allVictimPoints = victimPoints.values.sum()
-        val allHunterPoints = hunterPoints.values.sum()
-
-        return allVictimPoints + allHunterPoints
+        return eatScore
     }
 
     private fun getScore(fragments: List<TestPlayer>, enemies: List<TestPlayer>): Float {
@@ -786,17 +433,5 @@ class Strategy2 {
         }
 
         return victimsPoint
-    }
-
-    private fun thereAreHunters(fragments: List<TestPlayer>, enemies: List<TestPlayer>): Boolean {
-        fragments.forEach { f ->
-            enemies.forEach {
-                if (!Utils.canEatPotential(f, it)) {
-                    return true
-                }
-            }
-        }
-
-        return false
     }
 }
