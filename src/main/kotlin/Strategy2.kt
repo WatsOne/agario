@@ -1,10 +1,10 @@
-//import mu.KLogging
+import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-//    companion object: KLogging()
+    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -41,26 +41,26 @@ class Strategy2 {
                     }
                 }
 
-                val victimPairs = Utils.getPotentialVictims(data)
-                val hunterPairs = Utils.getPotentialHunters(data)
+//                val victimPairs = Utils.getPotentialVictims(data)
+//                val hunterPairs = Utils.getPotentialHunters(data)
 
-                if (victimPairs.isNotEmpty() || hunterPairs.isNotEmpty()) {
+//                if (victimPairs.isNotEmpty() || hunterPairs.isNotEmpty()) {
 
-                    val simResult = if (Utils.canSplit(data.me, world)) {
-                        val splitPoints = splitSimulation(enemySpeedVectors, world, data)
-                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, true, splitPoints)
-                    } else {
-                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, false, 0f)
-                    }
+//                    val simResult = if (Utils.canSplit(data.me, world)) {
+//                        val splitPoints = splitSimulation(enemySpeedVectors, world, data)
+//                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, true, splitPoints)
+//                    } else {
+//                        enemySimulation(victimPairs, hunterPairs, enemySpeedVectors, world, data, false, 0f)
+//                    }
 
-                    println(simResult)
+                    println(simulation(data, enemySpeedVectors, world))
 
                     prevFoodPos = null
                     prevFood = listOf()
 
                     tick++
                     continue
-                }
+//                }
             }
 
             val split = (tick % 50 == 0)
@@ -184,6 +184,134 @@ class Strategy2 {
 
     private fun getLeaderFragment(me: List<Me>): Me {
         return me.minBy { it.id.toFloat() } ?: me[0]
+    }
+
+    private fun simulation(data: Data, enemyVectors: Map<String, Pair<Float, Float>?>, world: World): JSONObject {
+
+        val testFragmentsInitial = data.me.map { TestPlayer(it) }
+        val testEnemiesInitial = data.enemy.map { TestPlayer(it, enemyVectors[it.id]?.first ?: 0f, enemyVectors[it.id]?.second ?: 0f) }.toMutableList()
+
+        val fakeEnemies = mutableListOf<TestPlayer>()
+//        if (thereAreHunters(testFragmentsInitial, testFragmentsInitial)) {
+//            val w = world.width.toFloat()
+//            val h = world.height.toFloat()
+//
+//            val r = 495f
+//            val m = 61256.25f
+//
+//            fakeEnemies.add(TestPlayer(id = "f00", x = 0f, y = 0f, r = r, m = m, sx = 0f, sy = 0f))
+//            fakeEnemies.add(TestPlayer(id = "f01", x = w, y = 0f, r = r, m = m, sx = 0f, sy = 0f))
+//            fakeEnemies.add(TestPlayer(id = "f02", x = w, y = h, r = r, m = m, sx = 0f, sy = 0f))
+//            fakeEnemies.add(TestPlayer(id = "f03", x = 0f, y = h, r = r, m = m, sx = 0f, sy = 0f))
+//        }
+
+        val points = mutableMapOf<Pair<Float, Float>, Float>()
+
+        Utils.rotatingPointsForSimulation(data.me[0], world, 40).forEach { d ->
+            val testFragments = testFragmentsInitial.map { it.copy() }.toMutableList()
+            val testEnemies = testEnemiesInitial.map { it.copy() }.toMutableList()
+
+            var eatScore = 0f
+
+            for (step in 1..5) {
+
+                testEnemies.forEach { Utils.applyDirect(it.x + it.sx, it.y + it.sy, it, world) }
+                testFragments.forEach { Utils.applyDirect(d.first, d.second, it, world) }
+
+                for (i in 0 until testEnemies.size ) {
+                    for (j in i + 1 until testEnemies.size) {
+                        Utils.calculateCollision(testEnemies[i], testEnemies[j])
+                    }
+                }
+
+                for (i in 0 until testFragments.size ) {
+                    for (j in i + 1 until testFragments.size) {
+                        Utils.calculateCollision(testFragments[i], testFragments[j])
+                    }
+                }
+
+                testFragments.forEach { Utils.move(it, world) }
+                testEnemies.forEach { Utils.move(it, world) }
+
+                if (tick % SHRINK_EVERY_TICK == 0) {
+                    testFragments.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
+                    testEnemies.filter { Utils.canShrink(it) }.forEach { Utils.shrink(it) }
+                }
+
+                val fragmentsToRemove = mutableListOf<TestPlayer>()
+                testFragments.forEach { f ->
+                    val nearestEnemy = testEnemies.filter { Utils.canEat(it, f) }.minBy { Utils.dist(it, f) }
+                    if (nearestEnemy != null) {
+
+                        f.x = nearestEnemy.x
+                        f.y = nearestEnemy.y
+
+                        nearestEnemy.m += f.m
+                        nearestEnemy.needUpdateMass = true
+
+                        eatScore += getScoreForEatFragment(f, testEnemies)
+
+                        fragmentsToRemove.add(f)
+                    }
+                }
+                fragmentsToRemove.forEach { testFragments.remove(it) }
+
+                val huntersToRemove = mutableListOf<TestPlayer>()
+                testEnemies.forEach { e ->
+                    val nearestFragment = testFragments.filter { Utils.canEat(it, e) }.minBy { Utils.dist(it, e) }
+                    if (nearestFragment != null) {
+
+                        e.x = nearestFragment.x
+                        e.y = nearestFragment.y
+
+                        nearestFragment.m += e.m
+                        nearestFragment.needUpdateMass = true
+
+                        eatScore += getScoreForEatEnemy(e, testFragments)
+
+                        huntersToRemove.add(e)
+                    }
+                }
+                huntersToRemove.forEach { testEnemies.remove(it) }
+
+                var moreFuse = true
+
+                while (moreFuse) {
+                    moreFuse = false
+                    for (i in 0 until testFragments.size ) {
+                        for (j in i + 1 until testFragments.size) {
+                            if (testFragments[i].isActual && testFragments[j].isActual) {
+                                if (Utils.canFuse(testFragments[i], testFragments[j])) {
+                                    Utils.fusion(testFragments[i], testFragments[j])
+                                    testFragments[j].isActual = false
+                                    moreFuse = true
+                                }
+                            }
+                        }
+                    }
+
+                    if (moreFuse) {
+                        testFragments.filter { it.isActual }.forEach { Utils.updateByMass(it, world) }
+                    }
+                }
+
+                testEnemies.filter { !it.isActual }.forEach { testEnemies.remove(it) }
+
+                testFragments.filter { it.needUpdateMass }.forEach {
+                    Utils.updateByMass(it, world)
+                    it.needUpdateMass = false
+                }
+                testEnemies.filter { it.needUpdateMass }.forEach {
+                    Utils.updateByMass(it, world)
+                    it.needUpdateMass = false
+                }
+            }
+
+            points[d] = getScore(testFragments, testEnemies.plus(fakeEnemies)) + eatScore
+        }
+
+        val maxPoints = points.maxBy { it.value }!!
+        return JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second))
     }
 
     private fun enemySimulation(victimsP: List<Pair<String, String>>, huntersP: List<Pair<String, String>>, enemyVectors: Map<String, Pair<Float, Float>?>,  world: World, data: Data, canSplit: Boolean, splitPoints: Float):  JSONObject {
@@ -573,5 +701,102 @@ class Strategy2 {
         val allHunterPoints = hunterPoints.values.sum()
 
         return allVictimPoints + allHunterPoints
+    }
+
+    private fun getScore(fragments: List<TestPlayer>, enemies: List<TestPlayer>): Float {
+
+        val victims = mutableListOf<Pair<TestPlayer, TestPlayer>>()
+        val hunters = mutableListOf<Pair<TestPlayer, TestPlayer>>()
+
+        fragments.forEach { f ->
+            enemies.forEach {
+                if (Utils.canEatPotential(f, it)) {
+                    victims.add(Pair(f, it))
+                } else {
+                    hunters.add(Pair(it, f))
+                }
+            }
+        }
+
+        val victimsCount = victims.groupingBy { it.second.id }.eachCount()
+        val huntersCount = hunters.groupingBy { it.second.id }.eachCount()
+
+        val visionFactor = if (fragments.size == 1) 1f else sqrt(fragments.size.toFloat())
+        var victimsPoint = 0f
+        victims.forEach {
+            val allDist = it.first.r * 4 * visionFactor + 10
+            val dist = max(allDist - Utils.dist(it.first, it.second), 0f)
+            victimsPoint += ((dist*dist) / allDist) / (victimsCount[it.second.id]?.toFloat() ?: 1f) * it.second.m
+        }
+
+        var huntersPoint = 0f
+        hunters.forEach {
+            val allDist = if (it.first.id?.startsWith("f") == true) {
+                it.first.r
+            } else {
+                it.first.r * 4 + 10
+            }
+            val dist = max(allDist - Utils.dist(it.first, it.second), 0f)
+            huntersPoint += ((dist*dist) / allDist) / (huntersCount[it.second.id]?.toFloat() ?: 1f) * it.second.m
+        }
+
+        return victimsPoint - huntersPoint
+    }
+
+    private fun getScoreForEatFragment(fragment: TestPlayer, enemies: List<TestPlayer>): Float {
+
+        val hunters = mutableListOf<Pair<TestPlayer, TestPlayer>>()
+
+        enemies.forEach {
+            if (Utils.canEatPotential(it, fragment)) {
+                hunters.add(Pair(it, fragment))
+            }
+        }
+
+        val huntersCount = hunters.groupingBy { it.second.id }.eachCount()
+
+        var huntersPoint = 0f
+        hunters.forEach {
+            val allDist = it.first.r * 4 + 10
+            val dist = max(allDist - Utils.dist(it.first, it.second), 0f)
+            huntersPoint += ((dist*dist) / allDist) / (huntersCount[it.second.id]?.toFloat() ?: 1f) * it.second.m
+        }
+
+        return -1 * huntersPoint
+    }
+
+    private fun getScoreForEatEnemy(enemy: TestPlayer, fragments: List<TestPlayer>): Float {
+
+        val victims = mutableListOf<Pair<TestPlayer, TestPlayer>>()
+
+        fragments.forEach {
+            if (Utils.canEatPotential(it, enemy)) {
+                victims.add(Pair(it, enemy))
+            }
+        }
+
+        val victimsCount = victims.groupingBy { it.second.id }.eachCount()
+
+        val visionFactor = if (fragments.size == 1) 1f else sqrt(fragments.size.toFloat())
+        var victimsPoint = 0f
+        victims.forEach {
+            val allDist = it.first.r * 4 * visionFactor + 10
+            val dist = max(allDist - Utils.dist(it.first, it.second), 0f)
+            victimsPoint += ((dist*dist) / allDist) / (victimsCount[it.second.id]?.toFloat() ?: 1f) * it.second.m
+        }
+
+        return victimsPoint
+    }
+
+    private fun thereAreHunters(fragments: List<TestPlayer>, enemies: List<TestPlayer>): Boolean {
+        fragments.forEach { f ->
+            enemies.forEach {
+                if (!Utils.canEatPotential(f, it)) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 }
