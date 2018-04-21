@@ -18,7 +18,6 @@ class Strategy2 {
 
         var prevFood = listOf<String>()
         var prevFoodPos: Pair<Float, Float>? = null
-        var splitTimer = 0
         val potentialFood = mutableListOf<Pair<Float, Float>>()
 
         while (true) {
@@ -61,15 +60,12 @@ class Strategy2 {
                     prevFood = listOf()
                     potentialFood.clear()
 
-                    splitTimer = 0
                     tick++
                     continue
 //                }
             }
 
-            splitTimer = if (tick % 60 == 0) 6 else splitTimer
-            splitTimer--
-
+            val split = (tick % 50 == 0)
             if (data.food.isEmpty()) {
                 idlePoint = potentialFood.getOrElse(0, { getIdlePoint(data, world, idlePoint) })
 
@@ -81,7 +77,7 @@ class Strategy2 {
             } else {
                 if (data.food.map { it.x.toString() + "|" + it.y }.intersect(prevFood).isNotEmpty()) {
 
-                    println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second, "Split" to (splitTimer > 0))))
+                    println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second, "Split" to split)))
                 } else {
 
                     prevFoodPos = null
@@ -91,10 +87,10 @@ class Strategy2 {
                     if (doEatPosition.third == null) {
                         idlePoint = getIdlePoint(data, world, idlePoint)
 
-                        println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second, "Split" to (splitTimer > 0))))
+                        println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second, "Split" to split)))
                     } else {
                         idlePoint = null
-                        if (splitTimer <= 0) {
+                        if (!split) {
                             prevFoodPos = Pair(doEatPosition.first, doEatPosition.second)
                             prevFood = doEatPosition.third!!
                             potentialFood.addAll(data.food.map { it.x.toString() + "|" + it.y }.subtract(prevFood).map { Pair(it.split("|")[0].toFloat(), it.split("|")[1].toFloat()) })
