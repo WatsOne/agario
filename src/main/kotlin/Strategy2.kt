@@ -18,6 +18,7 @@ class Strategy2 {
 
         var prevFood = listOf<String>()
         var prevFoodPos: Pair<Float, Float>? = null
+        var splitTimer = 0
 
         while (true) {
             val tickData = JSONObject(readLine())
@@ -58,12 +59,15 @@ class Strategy2 {
                     prevFoodPos = null
                     prevFood = listOf()
 
+                    splitTimer = 0
                     tick++
                     continue
 //                }
             }
 
-            val split = (tick % 50 == 0)
+            splitTimer = if (tick % 60 == 0) 6 else splitTimer
+            splitTimer--
+
             if (data.food.isEmpty()) {
                 idlePoint = getIdlePoint(data, world, idlePoint)
 
@@ -74,7 +78,7 @@ class Strategy2 {
             } else {
                 if (data.food.map { it.x.toString() + it.y }.intersect(prevFood).isNotEmpty()) {
 
-                    println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second, "Split" to split)))
+                    println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second, "Split" to (splitTimer > 0))))
                 } else {
 
                     prevFoodPos = null
@@ -84,10 +88,10 @@ class Strategy2 {
                     if (doEatPosition.third == null) {
                         idlePoint = getIdlePoint(data, world, idlePoint)
 
-                        println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second, "Split" to split)))
+                        println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second, "Split" to (splitTimer > 0))))
                     } else {
                         idlePoint = null
-                        if (!split) {
+                        if (splitTimer <= 0) {
                             prevFoodPos = Pair(doEatPosition.first, doEatPosition.second)
                             prevFood = doEatPosition.third!!
                             println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
