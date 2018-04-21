@@ -387,6 +387,10 @@ class Strategy2 {
             huntersPoint += ((dist*dist) / allDist) / (huntersCount[it.second.id]?.toFloat() ?: 1f) * it.second.m
         }
 
+        if (fragments.size == 1) {
+            huntersPoint *= 2
+        }
+
         return victimsPoint - huntersPoint
     }
 
