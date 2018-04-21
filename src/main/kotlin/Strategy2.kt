@@ -18,6 +18,7 @@ class Strategy2 {
 
         var prevFood = listOf<String>()
         var prevFoodPos: Pair<Float, Float>? = null
+        val potentialFood = mutableListOf<Pair<Float, Float>>()
 
         while (true) {
             val tickData = JSONObject(readLine())
@@ -55,6 +56,7 @@ class Strategy2 {
 
                     println(simResult)
 
+                    potentialFood.clear()
                     prevFoodPos = null
                     prevFood = listOf()
 
@@ -65,14 +67,16 @@ class Strategy2 {
 
             val split = (tick % 50 == 0)
             if (data.food.isEmpty()) {
-                idlePoint = getIdlePoint(data, world, idlePoint)
+                idlePoint = potentialFood.getOrElse(0, { getIdlePoint(data, world, idlePoint) })
+
+                potentialFood.clear()
 
                 prevFoodPos = null
                 prevFood = listOf()
 
                 println(JSONObject(mapOf("X" to idlePoint.first, "Y" to idlePoint.second)))
             } else {
-                if (data.food.map { it.x.toString() + it.y }.intersect(prevFood).isNotEmpty()) {
+                if (data.food.map { it.x.toString() + "|" + it.y }.intersect(prevFood).isNotEmpty()) {
 
                     println(JSONObject(mapOf("X" to prevFoodPos?.first, "Y" to prevFoodPos?.second, "Split" to split)))
                 } else {
@@ -90,6 +94,7 @@ class Strategy2 {
                         if (!split) {
                             prevFoodPos = Pair(doEatPosition.first, doEatPosition.second)
                             prevFood = doEatPosition.third!!
+                            potentialFood.addAll(data.food.map { it.x.toString() + "|" + it.y }.subtract(prevFood).map { Pair(it.split("|")[0].toFloat(), it.split("|")[1].toFloat()) })
                             println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second)))
                         } else {
                             println(JSONObject(mapOf("X" to doEatPosition.first, "Y" to doEatPosition.second, "Split" to true)))
@@ -159,7 +164,7 @@ class Strategy2 {
                             p.r = 2 * sqrt(p.m)
                             ppt = eat / tick.toFloat()
 
-                            foodList.add(f.x.toString() + f.y.toString())
+                            foodList.add(f.x.toString() + "|" + f.y.toString())
                         }
                     }
                 }
