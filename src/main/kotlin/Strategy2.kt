@@ -1,10 +1,10 @@
-import mu.KLogging
+//import mu.KLogging
 import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.sqrt
 
 class Strategy2 {
-    companion object: KLogging()
+//    companion object: KLogging()
     var tick = 1
 
     fun go() {
@@ -195,16 +195,18 @@ class Strategy2 {
         val simPoints = mutableMapOf<Pair<Float, Float>, Float>()
         val initialSimulationPoints = splitSimulation(testFragmentsInitial.map { it.copy() }.toMutableList(), testEnemiesInitial.map { it.copy() }.toMutableList(), world)
 
-        Utils.rotatingPointsForSimulation(data.me[0], world, 40).forEach { d ->
+        Utils.rotatingPointsForSimulation(data.me[0], world, 20).forEach { d ->
             val testFragments = testFragmentsInitial.map { it.copy() }.toMutableList()
             val testEnemies = testEnemiesInitial.map { it.copy() }.toMutableList()
             val stepSimPoints = mutableListOf<Float>()
 
             var eatScore = 0f
 
-            for (i in 1..5) {
+            for (i in 1..10) {
                 eatScore += stepSimulation(testFragments, testEnemies, d, world)
-                stepSimPoints.add(eatScore + splitSimulation(testFragments.map { it.copy() }.toMutableList(), testEnemies.map { it.copy() }.toMutableList(), world))
+                if (i % 2 == 0) {
+                    stepSimPoints.add(eatScore + splitSimulation(testFragments.map { it.copy() }.toMutableList(), testEnemies.map { it.copy() }.toMutableList(), world))
+                }
             }
 
             points[d] = getScore(testFragments, testEnemies) + eatScore
@@ -214,7 +216,7 @@ class Strategy2 {
         val maxPoints = points.maxBy { it.value }!!
         val maxSimPoint = simPoints.maxBy { it.value }!!
 
-        logger.trace { "$tick: max: $maxPoints; split: $maxSimPoint; init: $initialSimulationPoints" }
+//        logger.trace { "$tick: max: $maxPoints; split: $maxSimPoint; init: $initialSimulationPoints" }
 
         return if (initialSimulationPoints > maxPoints.value && initialSimulationPoints > maxSimPoint.value) {
             JSONObject(mapOf("X" to maxPoints.key.first, "Y" to maxPoints.key.second, "Split" to true))

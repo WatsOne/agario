@@ -140,7 +140,7 @@ object Utils {
     }
 
     fun canEatPotential(player: TestPlayer, food: TestPlayer): Boolean {
-        return player.m > food.m * MASS_EAT_FACTOR
+        return player.m > food.m * (MASS_EAT_FACTOR + 0.20)
     }
 
     fun canEat(player: Circle, food: Circle): Boolean {
